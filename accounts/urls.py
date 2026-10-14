@@ -23,6 +23,12 @@ from accounts.views.admin_views import (
     AdminCategoryListCreateView,
     AdminCategoryDetailView,
 )
+from accounts.views.dashboard_views import (
+    DashboardView,
+    AdminDashboardView,
+    SupportDashboardView,
+    CustomerDashboardView,
+)
 from accounts.views.support_views import (
     SupportTicketListView,
     SupportTicketDetailView,
@@ -81,6 +87,14 @@ urlpatterns = [
     # 3.4 Priorities (Categories ke endpoints /api/admin/categories/ pe pehle se hain)
     path("priorities/", PriorityListCreateView.as_view(), name="priorities"),
     path("priorities/<int:pk>/", PriorityDetailView.as_view(), name="priority-detail"),
+
+
+    # 3.5 Dashboards
+    path("dashboard/", DashboardView.as_view(), name="dashboard"),
+    path("dashboard/admin/", AdminDashboardView.as_view(), name="dashboard-admin"),
+    path("dashboard/support/", SupportDashboardView.as_view(), name="dashboard-support"),
+    path("dashboard/me/", CustomerDashboardView.as_view(), name="dashboard-customer"),
+ 
  
  
 
