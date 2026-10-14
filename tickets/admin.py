@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Attachment, Category, Comment, Ticket
+from .models import Attachment, Category, Comment, Ticket, TicketHistory
 
 
 class CommentInline(admin.TabularInline):
@@ -13,6 +13,13 @@ class AttachmentInline(admin.TabularInline):
     extra = 0
 
 
+class HistoryInline(admin.TabularInline):
+    model = TicketHistory
+    extra = 0
+    readonly_fields = ("changed_by", "field", "old_value", "new_value", "created_at")
+    can_delete = False
+
+
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = (
@@ -21,7 +28,7 @@ class TicketAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "priority", "category")
     search_fields = ("title", "description", "created_by__username")
-    inlines = [CommentInline, AttachmentInline]
+    inlines = [CommentInline, AttachmentInline, HistoryInline]
 
 
 admin.site.register(Category)

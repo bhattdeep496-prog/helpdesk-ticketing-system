@@ -7,7 +7,7 @@ class User(AbstractUser):
 
     class Role(models.TextChoices):
         CUSTOMER = "customer", "Customer"
-        AGENT = "agent", "Support Agent"
+        SUPPORT = "support", "Support Staff"
         ADMIN = "admin", "Admin"
 
     role = models.CharField(
@@ -19,8 +19,8 @@ class User(AbstractUser):
         return self.role == self.Role.CUSTOMER
 
     @property
-    def is_support_agent(self):
-        return self.role == self.Role.AGENT
+    def is_support_staff(self):
+        return self.role == self.Role.SUPPORT
 
     @property
     def is_helpdesk_admin(self):

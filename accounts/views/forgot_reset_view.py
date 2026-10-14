@@ -80,7 +80,7 @@ class ResetPasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not default_token_generator.check_token(user, token):
+        if not default_token_generator.check_token(user, token):    
             return Response(
                 {'error': 'Token is invalid or has expired.'},
                 status=status.HTTP_400_BAD_REQUEST,

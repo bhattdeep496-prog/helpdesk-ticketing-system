@@ -18,13 +18,11 @@ class Ticket(models.Model):
         LOW = "low", "Low"
         MEDIUM = "medium", "Medium"
         HIGH = "high", "High"
-        URGENT = "urgent", "Urgent"
+        CRITICAL = "critical", "Critical"
 
     class Status(models.TextChoices):
         NEW = "new", "New"
-        ASSIGNED = "assigned", "Assigned"
         IN_PROGRESS = "in_progress", "In Progress"
-        WAITING = "waiting", "Waiting on Customer"
         RESOLVED = "resolved", "Resolved"
         CLOSED = "closed", "Closed"
 
@@ -47,7 +45,7 @@ class Ticket(models.Model):
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="assigned_tickets",
-        limit_choices_to={"role": "agent"},
+        limit_choices_to={"role": "support"},
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -92,3 +90,25 @@ class Attachment(models.Model):
 
     def __str__(self):
         return self.file.name
+
+
+class TicketHistory(models.Model):
+    """Log of status/priority changes, so users can see a ticket's history."""
+    ticket = models.ForeignKey(
+        Ticket, on_delete=models.CASCADE, related_name="history"
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True,
+    )
+    field = models.CharField(max_length=30)
+    old_value = models.CharField(max_length=100)
+    new_value = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        verbose_name_plural = "ticket history"
+
+    def __str__(self):
+        return f"#{self.ticket_id}: {self.field} {self.old_value} -> {self.new_value}"
