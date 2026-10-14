@@ -1,5 +1,7 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.text import slugify
 
 
 class Category(models.Model):
@@ -13,13 +15,38 @@ class Category(models.Model):
         return self.name
 
 
-class Ticket(models.Model):
-    class Priority(models.TextChoices):
-        LOW = "low", "Low"
-        MEDIUM = "medium", "Medium"
-        HIGH = "high", "High"
-        CRITICAL = "critical", "Critical"
+class Priority(models.Model):
+    """Admin-defined priority levels (default: Low, Medium, High, Critical)."""
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True, editable=False)
+    level = models.PositiveSmallIntegerField(
+        default=1, help_text="Higher number = more urgent."
+    )
+    is_active = models.BooleanField(
+        default=True, help_text="Inactive priorities cannot be used on new tickets."
+    )
 
+    class Meta:
+        ordering = ["level", "id"]
+        verbose_name_plural = "priorities"
+
+    def save(self, *args, **kwargs):
+        # slug sirf pehli baar bante waqt banta hai, tickets isi ko store karte hain
+        if not self.slug:
+            self.slug = slugify(self.name).replace("-", "_")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+def validate_priority(value):
+    """Ticket ki priority kisi active Priority ka slug honi chahiye."""
+    if not Priority.objects.filter(slug=value, is_active=True).exists():
+        raise ValidationError(f"'{value}' is not a valid priority.")
+
+
+class Ticket(models.Model):
     class Status(models.TextChoices):
         NEW = "new", "New"
         IN_PROGRESS = "in_progress", "In Progress"
@@ -33,7 +60,7 @@ class Ticket(models.Model):
         related_name="tickets",
     )
     priority = models.CharField(
-        max_length=10, choices=Priority.choices, default=Priority.MEDIUM
+        max_length=50, default="medium", validators=[validate_priority]
     )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.NEW
@@ -93,7 +120,7 @@ class Attachment(models.Model):
 
 
 class TicketHistory(models.Model):
-    """Log of status/priority changes, so users can see a ticket's history."""
+    """Log of status/priority/assignment changes, so users can see a ticket's history."""
     ticket = models.ForeignKey(
         Ticket, on_delete=models.CASCADE, related_name="history"
     )

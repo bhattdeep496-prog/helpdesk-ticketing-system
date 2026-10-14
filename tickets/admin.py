@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Attachment, Category, Comment, Ticket, TicketHistory
+from .models import (
+    Attachment, Category, Comment, Priority, Ticket, TicketHistory,
+)
 
 
 class CommentInline(admin.TabularInline):
@@ -29,6 +31,13 @@ class TicketAdmin(admin.ModelAdmin):
     list_filter = ("status", "priority", "category")
     search_fields = ("title", "description", "created_by__username")
     inlines = [CommentInline, AttachmentInline, HistoryInline]
+
+
+@admin.register(Priority)
+class PriorityAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "level", "is_active")
+    list_editable = ("level", "is_active")
+    readonly_fields = ("slug",)
 
 
 admin.site.register(Category)

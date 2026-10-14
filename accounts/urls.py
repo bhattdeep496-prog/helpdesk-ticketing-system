@@ -1,9 +1,3 @@
-from accounts.views.admin_ticket_views import (
-    AdminTicketListView,
-    AdminAssignTicketView,
-    AdminAutoAssignTicketView,
-)
-from accounts.views.attachment_views import TicketAttachmentView
 from unicodedata import name
 from django.urls import path
 from accounts.views.login_view import LoginView
@@ -14,6 +8,14 @@ from accounts.views.reset_password_view import PasswordResetView, PasswordResetC
 from accounts.views.my_tickets_view import MyTicketsView, MyTicketDetailView
 from accounts.views.user_profile_view import UserProfileView
 from accounts.views.register_view import RegisterView
+from accounts.views.comment_views import TicketCommentView
+from accounts.views.priority_views import PriorityListCreateView, PriorityDetailView
+from accounts.views.admin_ticket_views import (
+    AdminTicketListView,
+    AdminAssignTicketView,
+    AdminAutoAssignTicketView,
+)
+from accounts.views.attachment_views import TicketAttachmentView
 # pyrefly: ignore [missing-import]
 from accounts.views.admin_views import (
     AdminUserListCreateView,
@@ -71,6 +73,15 @@ urlpatterns = [
  
     # Attachments (customer / assigned support / admin)
     path("tickets/<int:pk>/attachments/", TicketAttachmentView.as_view(), name="ticket-attachments"),
+
+
+      # 3.3 Comments
+    path("tickets/<int:pk>/comments/", TicketCommentView.as_view(), name="ticket-comments"),
+ 
+    # 3.4 Priorities (Categories ke endpoints /api/admin/categories/ pe pehle se hain)
+    path("priorities/", PriorityListCreateView.as_view(), name="priorities"),
+    path("priorities/<int:pk>/", PriorityDetailView.as_view(), name="priority-detail"),
+ 
  
 
 ]
