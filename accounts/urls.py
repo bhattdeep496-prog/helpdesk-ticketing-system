@@ -1,3 +1,9 @@
+from accounts.views.admin_ticket_views import (
+    AdminTicketListView,
+    AdminAssignTicketView,
+    AdminAutoAssignTicketView,
+)
+from accounts.views.attachment_views import TicketAttachmentView
 from unicodedata import name
 from django.urls import path
 from accounts.views.login_view import LoginView
@@ -56,5 +62,15 @@ urlpatterns = [
  
     # Customer
     path("my-tickets/<int:pk>/history/", MyTicketHistoryView.as_view(), name="my-ticket-history"),
+
+
+     # Admin: tickets + assignment (manual / auto)
+    path("admin/tickets/", AdminTicketListView.as_view(), name="admin-tickets"),
+    path("admin/tickets/<int:pk>/assign/", AdminAssignTicketView.as_view(), name="admin-ticket-assign"),
+    path("admin/tickets/<int:pk>/auto-assign/", AdminAutoAssignTicketView.as_view(), name="admin-ticket-auto-assign"),
+ 
+    # Attachments (customer / assigned support / admin)
+    path("tickets/<int:pk>/attachments/", TicketAttachmentView.as_view(), name="ticket-attachments"),
+ 
 
 ]
