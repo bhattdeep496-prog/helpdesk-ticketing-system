@@ -10,6 +10,7 @@ from accounts.views.user_profile_view import UserProfileView
 from accounts.views.register_view import RegisterView
 from accounts.views.comment_views import TicketCommentView
 from accounts.views.priority_views import PriorityListCreateView, PriorityDetailView
+from accounts.views.ticket_search_view import TicketSearchView
 from accounts.views.admin_ticket_views import (
     AdminTicketListView,
     AdminAssignTicketView,
@@ -94,6 +95,10 @@ urlpatterns = [
     path("dashboard/admin/", AdminDashboardView.as_view(), name="dashboard-admin"),
     path("dashboard/support/", SupportDashboardView.as_view(), name="dashboard-support"),
     path("dashboard/me/", CustomerDashboardView.as_view(), name="dashboard-customer"),
+
+
+# 3.6 Search & Filters
+    path("tickets/", TicketSearchView.as_view(), name="tickets-search"),
  
  
  
