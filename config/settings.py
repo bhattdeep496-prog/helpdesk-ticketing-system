@@ -139,3 +139,4 @@ MAILERS = {
     },
 }
 
+ALLOW_PUBLIC_REGISTRATION = True
