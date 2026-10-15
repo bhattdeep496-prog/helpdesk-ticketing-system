@@ -24,6 +24,11 @@ from accounts.views.admin_views import (
     AdminCategoryListCreateView,
     AdminCategoryDetailView,
 )
+from accounts.views.report_views import (
+    SummaryReportView,
+    TicketsCSVExportView,
+    TicketsPDFExportView,
+)
 from accounts.views.dashboard_views import (
     DashboardView,
     AdminDashboardView,
@@ -100,7 +105,10 @@ urlpatterns = [
 # 3.6 Search & Filters
     path("tickets/", TicketSearchView.as_view(), name="tickets-search"),
  
- 
+  # 3.7 Reporting
+    path("reports/summary/", SummaryReportView.as_view(), name="report-summary"),
+    path("reports/tickets/csv/", TicketsCSVExportView.as_view(), name="report-tickets-csv"),
+    path("reports/tickets/pdf/", TicketsPDFExportView.as_view(), name="report-tickets-pdf"),
  
 
 ]
