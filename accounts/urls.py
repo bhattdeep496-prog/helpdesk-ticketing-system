@@ -40,6 +40,18 @@ from accounts.views.support_views import (
     SupportTicketDetailView,
 )
 from accounts.views.ticket_history_view import MyTicketHistoryView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
+from accounts.views.admin_ticket_detail_view import AdminTicketDetailView
+ 
+try:
+    import accounts.api_docs  # noqa: F401  (Swagger annotations)
+except Exception as exc:      # docs ki wajah se API kabhi band na ho
+    print(f"API docs annotations skipped: {exc}")
+
 
 
 urlpatterns = [
@@ -109,6 +121,15 @@ urlpatterns = [
     path("reports/summary/", SummaryReportView.as_view(), name="report-summary"),
     path("reports/tickets/csv/", TicketsCSVExportView.as_view(), name="report-tickets-csv"),
     path("reports/tickets/pdf/", TicketsPDFExportView.as_view(), name="report-tickets-pdf"),
+
+     # 3.8 Admin ticket CRUD
+    path("admin/tickets/<int:pk>/", AdminTicketDetailView.as_view(), name="admin-ticket-detail"),
+ 
+    # API documentation (Swagger / ReDoc)
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+ 
  
 
 ]

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',      #new restframework 
+    'drf_spectacular',
     'rest_framework.authtoken',
     'accounts',            #new account app 
     'tickets',             #new ticket app
@@ -48,6 +49,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",   # <- NAYI LINE
 }
 
 MIDDLEWARE = [
@@ -140,3 +142,17 @@ MAILERS = {
 }
 
 ALLOW_PUBLIC_REGISTRATION = True
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Helpdesk & Ticketing System API",
+    "DESCRIPTION": (
+        "REST API for a helpdesk: customers create tickets, support staff resolve "
+        "them, admins manage users, categories, priorities, dashboards and reports.\n\n"
+        "Login karke token lo (POST /api/login/), phir 'Authorize' button me "
+        "`Token <your token>` daalo."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SWAGGER_UI_SETTINGS": {"persistAuthorization": True},
+}

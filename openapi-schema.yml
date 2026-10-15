@@ -1,0 +1,2516 @@
+openapi: 3.0.3
+info:
+  title: Helpdesk & Ticketing System API
+  version: 1.0.0
+  description: |-
+    REST API for a helpdesk: customers create tickets, support staff resolve them, admins manage users, categories, priorities, dashboards and reports.
+
+    Login karke token lo (POST /api/login/), phir 'Authorize' button me `Token <your token>` daalo.
+paths:
+  /api/admin/categories/:
+    get:
+      operationId: admin_categories_list
+      description: |-
+        GET  /api/admin/categories/  -> any logged-in user (needed to create tickets)
+        POST /api/admin/categories/  -> Admin only
+      tags:
+      - 'Admin: users & categories'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+          description: ''
+    post:
+      operationId: admin_categories_create
+      description: |-
+        GET  /api/admin/categories/  -> any logged-in user (needed to create tickets)
+        POST /api/admin/categories/  -> Admin only
+      tags:
+      - 'Admin: users & categories'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/admin/categories/{id}/:
+    get:
+      operationId: admin_categories_retrieve
+      description: GET for all logged-in users; PATCH/DELETE for Admin only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: users & categories'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    put:
+      operationId: admin_categories_update
+      description: GET for all logged-in users; PATCH/DELETE for Admin only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: users & categories'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    patch:
+      operationId: admin_categories_partial_update
+      description: GET for all logged-in users; PATCH/DELETE for Admin only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: users & categories'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    delete:
+      operationId: admin_categories_destroy
+      description: GET for all logged-in users; PATCH/DELETE for Admin only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: users & categories'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/admin/tickets/:
+    get:
+      operationId: admin_tickets_list
+      description: |-
+        GET /api/admin/tickets/   -> all tickets
+        Filters: ?status=new  ?priority=high  ?category=1
+                 ?assigned_to=<user id> or ?assigned_to=unassigned
+                 ?search=<id or title>
+      summary: Saari tickets
+      parameters:
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+        description: (Sirf Admin) staff user id ya 'unassigned'.
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Category id(s) comma se, ya 'none' (bina category).
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Comma se multiple priority slugs (low, medium, high, critical,
+          ...).
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: 'Ticket ID (12 ya #12), title, description ya comment ka keyword.'
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: 'Comma se multiple: new, in_progress, resolved, closed.'
+      tags:
+      - 'Admin: tickets'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminTicket'
+          description: ''
+  /api/admin/tickets/{id}/:
+    get:
+      operationId: admin_tickets_retrieve
+      description: |-
+        GET    /api/admin/tickets/<id>/   -> full ticket details
+        PATCH  /api/admin/tickets/<id>/   -> title, description, category, priority, status
+        DELETE /api/admin/tickets/<id>/   -> ticket (comments/history ke saath) delete
+
+        Assign karne ke liye /api/admin/tickets/<id>/assign/ use karo.
+        Admin status ko kisi bhi value par set kar sakta hai (flow rules support staff
+        ke liye hain). Status/priority badalne par history me entry banti hai.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: tickets'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTicketDetail'
+          description: ''
+    patch:
+      operationId: admin_tickets_partial_update
+      description: |-
+        GET    /api/admin/tickets/<id>/   -> full ticket details
+        PATCH  /api/admin/tickets/<id>/   -> title, description, category, priority, status
+        DELETE /api/admin/tickets/<id>/   -> ticket (comments/history ke saath) delete
+
+        Assign karne ke liye /api/admin/tickets/<id>/assign/ use karo.
+        Admin status ko kisi bhi value par set kar sakta hai (flow rules support staff
+        ke liye hain). Status/priority badalne par history me entry banti hai.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: tickets'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminTicketDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminTicketDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminTicketDetailRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTicketDetail'
+          description: ''
+    delete:
+      operationId: admin_tickets_destroy
+      description: |-
+        GET    /api/admin/tickets/<id>/   -> full ticket details
+        PATCH  /api/admin/tickets/<id>/   -> title, description, category, priority, status
+        DELETE /api/admin/tickets/<id>/   -> ticket (comments/history ke saath) delete
+
+        Assign karne ke liye /api/admin/tickets/<id>/assign/ use karo.
+        Admin status ko kisi bhi value par set kar sakta hai (flow rules support staff
+        ke liye hain). Status/priority badalne par history me entry banti hai.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: tickets'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/admin/tickets/{id}/assign/:
+    patch:
+      operationId: admin_tickets_assign_partial_update
+      description: '`{"assigned_to": <support user id>}` ya `null` (unassign).'
+      summary: Ticket manually assign karo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: tickets'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAssignRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAssignRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAssignRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTicket'
+          description: ''
+  /api/admin/tickets/{id}/auto-assign/:
+    post:
+      operationId: admin_tickets_auto_assign_create
+      description: Sabse kam open tickets wale active support staff ko milta hai.
+      summary: Ticket auto-assign karo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: tickets'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminTicket'
+          description: ''
+  /api/admin/users/:
+    get:
+      operationId: admin_users_list
+      description: |-
+        GET  /api/admin/users/   -> list users (?role=support&is_active=true&search=ali)
+        POST /api/admin/users/   -> create a user with a role (Admin only)
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - admin
+          - customer
+          - support
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Username ya email.
+      tags:
+      - 'Admin: users & categories'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AdminUser'
+          description: ''
+    post:
+      operationId: admin_users_create
+      description: |-
+        GET  /api/admin/users/   -> list users (?role=support&is_active=true&search=ali)
+        POST /api/admin/users/   -> create a user with a role (Admin only)
+      parameters:
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - in: query
+        name: role
+        schema:
+          type: string
+          enum:
+          - admin
+          - customer
+          - support
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Username ya email.
+      tags:
+      - 'Admin: users & categories'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminUserRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/admin/users/{id}/:
+    get:
+      operationId: admin_users_retrieve
+      description: |-
+        GET   /api/admin/users/<id>/  -> user details
+        PATCH /api/admin/users/<id>/  -> change role / deactivate / edit details
+        Users are deactivated (is_active=false), never deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: users & categories'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+    patch:
+      operationId: admin_users_partial_update
+      description: |-
+        GET   /api/admin/users/<id>/  -> user details
+        PATCH /api/admin/users/<id>/  -> change role / deactivate / edit details
+        Users are deactivated (is_active=false), never deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - 'Admin: users & categories'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminUserRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+          description: ''
+  /api/chage-password/:
+    post:
+      operationId: chage_password_create
+      description: |-
+        POST {"old_password": "...", "new_password": "..."}
+        Header: Authorization: Token <your_token>
+        Changes the password of the logged-in user.
+      summary: Password badlo (logged-in user)
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequestRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/dashboard/:
+    get:
+      operationId: dashboard_retrieve
+      description: GET /api/dashboard/  -> logged-in user ke role ke hisaab se sahi
+        dashboard
+      tags:
+      - Dashboards
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/dashboard/admin/:
+    get:
+      operationId: dashboard_admin_retrieve
+      description: GET /api/dashboard/admin/  (Admin only)
+      tags:
+      - Dashboards
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/dashboard/me/:
+    get:
+      operationId: dashboard_me_retrieve
+      description: GET /api/dashboard/me/  (Customer only)
+      tags:
+      - Dashboards
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/dashboard/support/:
+    get:
+      operationId: dashboard_support_retrieve
+      description: GET /api/dashboard/support/  (Support Staff only)
+      tags:
+      - Dashboards
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/forgot-password/:
+    post:
+      operationId: forgot_password_create
+      description: |-
+        POST {"email": "user@example.com"}
+        Sends a password reset uid + token to the user's email.
+        (In development, the email is printed in the terminal.)
+      summary: Password reset email bhejo
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/login/:
+    get:
+      operationId: login_retrieve
+      description: |-
+        API endpoint for user login.
+        Accepts 'username' and 'password', authenticates user,
+        and returns an auth token.
+      summary: Login endpoint info
+      tags:
+      - Auth
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: login_create
+      description: 'Username aur password do, response me `token` milta hai. Baaki
+        requests me header lagao: `Authorization: Token <token>`.'
+      summary: Login (token lo)
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/logout/:
+    get:
+      operationId: logout_retrieve
+      description: |-
+        API endpoint for user logout.
+        Requires Token authentication. Deletes the active auth token and clears the session.
+      summary: Logout (token delete)
+      tags:
+      - Auth
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: logout_create
+      description: |-
+        API endpoint for user logout.
+        Requires Token authentication. Deletes the active auth token and clears the session.
+      summary: Logout (token delete)
+      tags:
+      - Auth
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/my-tickets/:
+    get:
+      operationId: my_tickets_list
+      description: 'GET: meri tickets (filters: status, priority, search). POST: nayi
+        ticket.'
+      tags:
+      - Customer tickets
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyTicket'
+          description: ''
+    post:
+      operationId: my_tickets_create
+      description: 'GET: meri tickets (filters: status, priority, search). POST: nayi
+        ticket.'
+      tags:
+      - Customer tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MyTicketRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MyTicketRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MyTicketRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTicket'
+          description: ''
+  /api/my-tickets/{id}/history/:
+    get:
+      operationId: my_tickets_history_list
+      description: |-
+        GET /api/my-tickets/<id>/history/
+        Status/priority history of one of MY tickets (customer view).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Customer tickets
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketHistory'
+          description: ''
+  /api/my-tickets/{ticket_id}/:
+    get:
+      operationId: my_tickets_retrieve
+      description: |-
+        GET   /api/my-tickets/<id>/   -> ticket details with comments
+        PATCH /api/my-tickets/<id>/   -> edit title/description/priority/category
+                                         (only while status is 'new')
+      parameters:
+      - in: path
+        name: ticket_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Customer tickets
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTicket'
+          description: ''
+    put:
+      operationId: my_tickets_update
+      description: |-
+        GET   /api/my-tickets/<id>/   -> ticket details with comments
+        PATCH /api/my-tickets/<id>/   -> edit title/description/priority/category
+                                         (only while status is 'new')
+      parameters:
+      - in: path
+        name: ticket_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Customer tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MyTicketRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MyTicketRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MyTicketRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTicket'
+          description: ''
+    patch:
+      operationId: my_tickets_partial_update
+      description: |-
+        GET   /api/my-tickets/<id>/   -> ticket details with comments
+        PATCH /api/my-tickets/<id>/   -> edit title/description/priority/category
+                                         (only while status is 'new')
+      parameters:
+      - in: path
+        name: ticket_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Customer tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMyTicketRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMyTicketRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMyTicketRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyTicket'
+          description: ''
+  /api/priorities/:
+    get:
+      operationId: priorities_list
+      description: |-
+        GET  /api/priorities/   -> sab logged-in users (dropdown ke liye).
+                                   Admin ko inactive bhi dikhte hain.
+        POST /api/priorities/   -> Admin: {"name": "Blocker", "level": 5}
+      tags:
+      - Priorities
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Priority'
+          description: ''
+    post:
+      operationId: priorities_create
+      description: |-
+        GET  /api/priorities/   -> sab logged-in users (dropdown ke liye).
+                                   Admin ko inactive bhi dikhte hain.
+        POST /api/priorities/   -> Admin: {"name": "Blocker", "level": 5}
+      tags:
+      - Priorities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriorityRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PriorityRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PriorityRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Priority'
+          description: ''
+  /api/priorities/{id}/:
+    get:
+      operationId: priorities_retrieve
+      description: |-
+        GET    /api/priorities/<id>/   -> sab logged-in users
+        PATCH  /api/priorities/<id>/   -> Admin: name, level, is_active badalna
+        DELETE /api/priorities/<id>/   -> Admin (agar kisi ticket me use ho raha ho to nahi)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Priorities
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Priority'
+          description: ''
+    patch:
+      operationId: priorities_partial_update
+      description: |-
+        GET    /api/priorities/<id>/   -> sab logged-in users
+        PATCH  /api/priorities/<id>/   -> Admin: name, level, is_active badalna
+        DELETE /api/priorities/<id>/   -> Admin (agar kisi ticket me use ho raha ho to nahi)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Priorities
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPriorityRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPriorityRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPriorityRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Priority'
+          description: ''
+    delete:
+      operationId: priorities_destroy
+      description: |-
+        GET    /api/priorities/<id>/   -> sab logged-in users
+        PATCH  /api/priorities/<id>/   -> Admin: name, level, is_active badalna
+        DELETE /api/priorities/<id>/   -> Admin (agar kisi ticket me use ho raha ho to nahi)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Priorities
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/register/:
+    post:
+      operationId: register_create
+      description: Naya account hamesha `customer` role ke saath banta hai. Admin
+        ne public registration band kiya ho to 403 aata hai.
+      summary: Register (hamesha Customer role)
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/reports/summary/:
+    get:
+      operationId: reports_summary_retrieve
+      description: |-
+        GET /api/reports/summary/?from=2026-10-01&to=2026-10-14   (Admin only)
+        Default: aakhri 30 din.
+
+        opened   = us period me bani tickets
+        resolved = us period me Resolved hui tickets
+        closed   = us period me Closed hui tickets (status history se)
+        daily    = din-ba-din numbers (chart ke liye)
+      summary: Summary report (opened / resolved / closed)
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD
+      tags:
+      - Reports
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/reports/tickets/csv/:
+    get:
+      operationId: reports_tickets_csv_retrieve
+      description: |-
+        GET /api/reports/tickets/csv/?status=resolved&created_from=2026-10-01 ...
+        Wahi filters jo /api/tickets/ me hain. Admin aur Support Staff ke liye.
+        (Admin: sab tickets, Support: sirf apni assigned tickets.)
+      summary: Tickets CSV export
+      parameters:
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+        description: (Sirf Admin) staff user id ya 'unassigned'.
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Category id(s) comma se, ya 'none' (bina category).
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: ordering
+        schema:
+          type: string
+          enum:
+          - -created_at
+          - -id
+          - -status
+          - -updated_at
+          - created_at
+          - id
+          - status
+          - updated_at
+        description: 'Default: -created_at.'
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Comma se multiple priority slugs (low, medium, high, critical,
+          ...).
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: 'Ticket ID (12 ya #12), title, description ya comment ka keyword.'
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: 'Comma se multiple: new, in_progress, resolved, closed.'
+      tags:
+      - Reports
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/reports/tickets/pdf/:
+    get:
+      operationId: reports_tickets_pdf_retrieve
+      description: GET /api/reports/tickets/pdf/?...   (same filters as CSV export)
+      summary: Tickets PDF export
+      parameters:
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+        description: (Sirf Admin) staff user id ya 'unassigned'.
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Category id(s) comma se, ya 'none' (bina category).
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: ordering
+        schema:
+          type: string
+          enum:
+          - -created_at
+          - -id
+          - -status
+          - -updated_at
+          - created_at
+          - id
+          - status
+          - updated_at
+        description: 'Default: -created_at.'
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Comma se multiple priority slugs (low, medium, high, critical,
+          ...).
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: 'Ticket ID (12 ya #12), title, description ya comment ka keyword.'
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: 'Comma se multiple: new, in_progress, resolved, closed.'
+      tags:
+      - Reports
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/reset-password/:
+    post:
+      operationId: reset_password_create
+      description: |-
+        POST {"uid": "...", "token": "...", "new_password": "..."}
+        Sets a new password if uid + token are valid.
+      summary: Email wale uid + token se naya password set karo
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequestRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/support/tickets/:
+    get:
+      operationId: support_tickets_list
+      description: |-
+        GET /api/support/tickets/
+        Tickets assigned to the logged-in support staff.
+        Filters: ?status=new  ?priority=high  ?category=1  ?search=<id or title>
+      summary: Mujhe assigned tickets
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Category id(s) comma se, ya 'none' (bina category).
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Comma se multiple priority slugs (low, medium, high, critical,
+          ...).
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: 'Ticket ID (12 ya #12), title, description ya comment ka keyword.'
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: 'Comma se multiple: new, in_progress, resolved, closed.'
+      tags:
+      - Support staff
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupportTicket'
+          description: ''
+  /api/support/tickets/{id}/:
+    get:
+      operationId: support_tickets_retrieve
+      description: 'PATCH: sirf `status` aur `priority`. Flow: New -> In Progress
+        -> Resolved -> Closed.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Support staff
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+          description: ''
+    patch:
+      operationId: support_tickets_partial_update
+      description: 'PATCH: sirf `status` aur `priority`. Flow: New -> In Progress
+        -> Resolved -> Closed.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Support staff
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSupportTicketRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSupportTicketRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSupportTicketRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportTicket'
+          description: ''
+  /api/tickets/:
+    get:
+      operationId: tickets_list
+      description: Admin ko sab tickets, Support Staff ko assigned tickets, Customer
+        ko apni tickets milti hain. Result pages me aata hai.
+      summary: Search & filter tickets (role ke hisaab se)
+      parameters:
+      - in: query
+        name: assigned_to
+        schema:
+          type: string
+        description: (Sirf Admin) staff user id ya 'unassigned'.
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Category id(s) comma se, ya 'none' (bina category).
+      - in: query
+        name: created_from
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: created_to
+        schema:
+          type: string
+          format: date
+        description: YYYY-MM-DD (is din ko mila kar).
+      - in: query
+        name: ordering
+        schema:
+          type: string
+          enum:
+          - -created_at
+          - -id
+          - -status
+          - -updated_at
+          - created_at
+          - id
+          - status
+          - updated_at
+        description: 'Default: -created_at.'
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: priority
+        schema:
+          type: string
+        description: Comma se multiple priority slugs (low, medium, high, critical,
+          ...).
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: 'Ticket ID (12 ya #12), title, description ya comment ka keyword.'
+      - in: query
+        name: status
+        schema:
+          type: string
+        description: 'Comma se multiple: new, in_progress, resolved, closed.'
+      tags:
+      - Tickets
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTicketListList'
+          description: ''
+  /api/tickets/{id}/attachments/:
+    get:
+      operationId: tickets_attachments_list
+      description: |-
+        GET  /api/tickets/<id>/attachments/   -> list files of a ticket
+        POST /api/tickets/<id>/attachments/   -> upload one or MORE files
+             (multipart/form-data, field name: "files", repeat it for many files)
+
+        Access: ticket ka owner (customer), assigned support staff, aur Admin.
+      summary: Ticket ki files ki list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Comments & attachments
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attachment'
+          description: ''
+    post:
+      operationId: tickets_attachments_create
+      description: 'Field naam `files` (repeat kar sakte ho). Allowed: jpg, jpeg,
+        png, gif, pdf. Har file max 5 MB, ek baar me max 5 files.'
+      summary: Ek ya zyada files upload karo
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Comments & attachments
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AttachmentUploadRequestRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attachment'
+          description: ''
+  /api/tickets/{id}/comments/:
+    get:
+      operationId: tickets_comments_list
+      description: Customer ko internal notes nahi dikhte.
+      summary: Ticket ka comment thread
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Comments & attachments
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+          description: ''
+    post:
+      operationId: tickets_comments_create
+      description: '`is_internal=true` sirf Support Staff / Admin laga sakta hai.'
+      summary: Comment likho
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - Comments & attachments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentRequest'
+        required: true
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+  /api/user-profile/:
+    get:
+      operationId: user_profile_retrieve
+      description: |-
+        GET   /api/profile/   -> logged-in user ki profile
+        PATCH /api/profile/   -> email, first_name, last_name update karna
+        Header: Authorization: Token <your_token>
+      tags:
+      - Auth
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    put:
+      operationId: user_profile_update
+      description: |-
+        GET   /api/profile/   -> logged-in user ki profile
+        PATCH /api/profile/   -> email, first_name, last_name update karna
+        Header: Authorization: Token <your_token>
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    patch:
+      operationId: user_profile_partial_update
+      description: |-
+        GET   /api/profile/   -> logged-in user ki profile
+        PATCH /api/profile/   -> email, first_name, last_name update karna
+        Header: Authorization: Token <your_token>
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+      security:
+      - tokenAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+components:
+  schemas:
+    AdminTicket:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        priority:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        category:
+          type: integer
+          readOnly: true
+          nullable: true
+        category_name:
+          type: string
+          readOnly: true
+        created_by:
+          type: string
+          readOnly: true
+        assigned_to:
+          type: string
+          readOnly: true
+        assigned_to_id:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - assigned_to
+      - assigned_to_id
+      - category
+      - category_name
+      - created_at
+      - created_by
+      - id
+      - priority
+      - resolved_at
+      - status
+      - title
+      - updated_at
+    AdminTicketDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        category:
+          type: integer
+          nullable: true
+        priority:
+          type: string
+          maxLength: 50
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        created_by:
+          type: string
+          readOnly: true
+        assigned_to:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - assigned_to
+      - created_at
+      - created_by
+      - description
+      - id
+      - resolved_at
+      - title
+      - updated_at
+    AdminUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - username
+    AdminUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - username
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        filename:
+          type: string
+          readOnly: true
+        url:
+          type: string
+          readOnly: true
+        uploaded_by:
+          type: string
+          readOnly: true
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - filename
+      - id
+      - uploaded_at
+      - uploaded_by
+      - url
+    AttachmentUploadRequestRequest:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            type: string
+            format: binary
+      required:
+      - files
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+      required:
+      - id
+      - name
+    CategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required:
+      - name
+    ChangePasswordRequestRequest:
+      type: object
+      properties:
+        old_password:
+          type: string
+          minLength: 1
+        new_password:
+          type: string
+          minLength: 1
+      required:
+      - new_password
+      - old_password
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        author:
+          type: string
+          readOnly: true
+        author_role:
+          type: string
+          readOnly: true
+        body:
+          type: string
+        is_internal:
+          type: boolean
+          description: 'Internal note: only staff can see it.'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - author_role
+      - body
+      - created_at
+      - id
+    CommentRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+        is_internal:
+          type: boolean
+          description: 'Internal note: only staff can see it.'
+      required:
+      - body
+    ForgotPasswordRequestRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - email
+    LoginRequestRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - password
+      - username
+    MyTicket:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        category:
+          type: integer
+          nullable: true
+        category_name:
+          type: string
+          readOnly: true
+        priority:
+          type: string
+          maxLength: 50
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        created_by:
+          type: string
+          readOnly: true
+        assigned_to:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        comments:
+          type: string
+          readOnly: true
+      required:
+      - assigned_to
+      - category_name
+      - comments
+      - created_at
+      - created_by
+      - description
+      - id
+      - resolved_at
+      - status
+      - title
+      - updated_at
+    MyTicketRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: integer
+          nullable: true
+        priority:
+          type: string
+          minLength: 1
+          maxLength: 50
+      required:
+      - description
+      - title
+    PaginatedTicketListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketList'
+    PatchedAdminTicketDetailRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: integer
+          nullable: true
+        priority:
+          type: string
+          minLength: 1
+          maxLength: 50
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+    PatchedAdminUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+    PatchedAssignRequest:
+      type: object
+      properties:
+        assigned_to:
+          type: integer
+          nullable: true
+    PatchedCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+    PatchedMyTicketRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+        category:
+          type: integer
+          nullable: true
+        priority:
+          type: string
+          minLength: 1
+          maxLength: 50
+    PatchedPriorityRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        level:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Higher number = more urgent.
+        is_active:
+          type: boolean
+          description: Inactive priorities cannot be used on new tickets.
+    PatchedSupportTicketRequest:
+      type: object
+      properties:
+        priority:
+          type: string
+          minLength: 1
+          maxLength: 50
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+    PatchedUserProfileRequest:
+      type: object
+      properties:
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+    Priority:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        level:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Higher number = more urgent.
+        is_active:
+          type: boolean
+          description: Inactive priorities cannot be used on new tickets.
+      required:
+      - id
+      - name
+      - slug
+    PriorityRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        level:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          description: Higher number = more urgent.
+        is_active:
+          type: boolean
+          description: Inactive priorities cannot be used on new tickets.
+      required:
+      - name
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password2:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+      - password2
+      - username
+    ResetPasswordRequestRequest:
+      type: object
+      properties:
+        uid:
+          type: string
+          minLength: 1
+        token:
+          type: string
+          minLength: 1
+        new_password:
+          type: string
+          minLength: 1
+      required:
+      - new_password
+      - token
+      - uid
+    RoleEnum:
+      enum:
+      - customer
+      - support
+      - admin
+      type: string
+      description: |-
+        * `customer` - Customer
+        * `support` - Support Staff
+        * `admin` - Admin
+    StatusEnum:
+      enum:
+      - new
+      - in_progress
+      - resolved
+      - closed
+      type: string
+      description: |-
+        * `new` - New
+        * `in_progress` - In Progress
+        * `resolved` - Resolved
+        * `closed` - Closed
+    SupportTicket:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        category:
+          type: integer
+          readOnly: true
+          nullable: true
+        category_name:
+          type: string
+          readOnly: true
+        priority:
+          type: string
+          maxLength: 50
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        created_by:
+          type: string
+          readOnly: true
+        assigned_to:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - assigned_to
+      - category
+      - category_name
+      - created_at
+      - created_by
+      - description
+      - id
+      - resolved_at
+      - title
+      - updated_at
+    TicketHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        field:
+          type: string
+          maxLength: 30
+        old_value:
+          type: string
+          maxLength: 100
+        new_value:
+          type: string
+          maxLength: 100
+        changed_by:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - changed_by
+      - created_at
+      - field
+      - id
+      - new_value
+      - old_value
+    TicketList:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description_preview:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        priority:
+          type: string
+          readOnly: true
+        category:
+          type: integer
+          readOnly: true
+          nullable: true
+        category_name:
+          type: string
+          readOnly: true
+        created_by:
+          type: string
+          readOnly: true
+        assigned_to:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        resolved_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - assigned_to
+      - category
+      - category_name
+      - created_at
+      - created_by
+      - description_preview
+      - id
+      - priority
+      - resolved_at
+      - status
+      - title
+      - updated_at
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        total_tickets:
+          type: string
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - role
+      - total_tickets
+      - username
+    UserProfileRequest:
+      type: object
+      properties:
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
