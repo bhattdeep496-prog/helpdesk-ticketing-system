@@ -16,6 +16,17 @@ class Category(models.Model):
         return self.name
 
 
+class Tag(models.Model):
+    """Admin-managed tags (optional) jo tickets par lagaye ja sakte hain."""
+    name = models.CharField(max_length=50, unique=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Priority(models.Model):
     """Admin-defined priority levels (default: Low, Medium, High, Critical)."""
     name = models.CharField(max_length=50, unique=True)
@@ -75,6 +86,7 @@ class Ticket(models.Model):
         null=True, blank=True, related_name="assigned_tickets",
         limit_choices_to={"role": "support"},
     )
+    tags = models.ManyToManyField(Tag, blank=True, related_name="tickets")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
@@ -141,4 +153,4 @@ class TicketHistory(models.Model):
     def __str__(self):
         return f"#{self.ticket_id}: {self.field} {self.old_value} -> {self.new_value}"
 
-from .site_settings import SystemSettings  # noqa: F401
+from .site_settings import SystemSettings  #noqa: F401

@@ -27,14 +27,17 @@ class TicketListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source='category.name', read_only=True, default=None
     )
+    tag_names = serializers.SlugRelatedField(
+        source='tags', many=True, read_only=True, slug_field='name'
+    )
     description_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
         fields = [
             'id', 'title', 'description_preview', 'status', 'priority',
-            'category', 'category_name', 'created_by', 'assigned_to',
-            'created_at', 'updated_at', 'resolved_at',
+            'category', 'category_name', 'tag_names', 'created_by',
+            'assigned_to', 'created_at', 'updated_at', 'resolved_at',
         ]
         read_only_fields = fields
 
@@ -75,6 +78,7 @@ class TicketSearchView(generics.ListAPIView):
       ?status=            new / in_progress / resolved / closed
       ?priority=          priority slug (low, medium, high, critical ...)
       ?category=          category id(s), ya 'none' (bina category)
+      ?tag=               tag ka naam (bug ya bug,urgent), kisi ek bhi tag wali tickets
       ?assigned_to=       (sirf Admin) user id ya 'unassigned'
       ?created_from=YYYY-MM-DD   &   ?created_to=YYYY-MM-DD   (date range, dono inclusive)
     ORDERING & PAGES
@@ -147,6 +151,13 @@ class TicketSearchView(generics.ListAPIView):
                 condition |= Q(category__isnull=True)
             qs = qs.filter(condition)
 
+        tag_names = _csv(params, 'tag')
+        if tag_names:
+            tag_condition = Q()
+            for name in tag_names:
+                tag_condition |= Q(tags__name__iexact=name)
+            qs = qs.filter(tag_condition).distinct()
+
         assigned = params.get('assigned_to')
         if assigned and user.is_helpdesk_admin:
             if assigned == 'unassigned':
@@ -176,6 +187,8 @@ class TicketSearchView(generics.ListAPIView):
                 {'ordering': f"Use one of: {', '.join(sorted(ALLOWED_ORDERING))}"}
             )
 
-        return qs.select_related('category', 'created_by', 'assigned_to').order_by(
-            ordering, '-id'
+        return (
+            qs.select_related('category', 'created_by', 'assigned_to')
+            .prefetch_related('tags')
+            .order_by(ordering, '-id')
         )

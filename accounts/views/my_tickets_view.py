@@ -21,14 +21,19 @@ class MyTicketSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source='category.name', read_only=True, default=None
     )
+    # tags: ticket banate waqt tag ids bhejo (optional), response mein naam bhi milte hain
+    tag_names = serializers.SlugRelatedField(
+        source='tags', many=True, read_only=True, slug_field='name'
+    )
     comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
         fields = [
             'id', 'title', 'description', 'category', 'category_name',
-            'priority', 'status', 'created_by', 'assigned_to',
-            'created_at', 'updated_at', 'resolved_at', 'comments',
+            'priority', 'tags', 'tag_names', 'status', 'created_by',
+            'assigned_to', 'created_at', 'updated_at', 'resolved_at',
+            'comments',
         ]
         read_only_fields = [
             'status', 'created_by', 'assigned_to',
@@ -45,7 +50,7 @@ class MyTicketsView(generics.ListCreateAPIView):
     """
     GET  /api/my-tickets/   -> list of my tickets
                                (filters: ?status=new&priority=high&search=text)
-    POST /api/my-tickets/   -> create a new ticket
+    POST /api/my-tickets/   -> create a new ticket (optional: "tags": [1, 2])
     Header: Authorization: Token <your_token>
     """
     serializer_class = MyTicketSerializer
@@ -65,7 +70,7 @@ class MyTicketsView(generics.ListCreateAPIView):
         if search:
             qs = qs.filter(title__icontains=search)
 
-        return qs.select_related('category', 'assigned_to')
+        return qs.select_related('category', 'assigned_to').prefetch_related('tags')
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -74,7 +79,7 @@ class MyTicketsView(generics.ListCreateAPIView):
 class MyTicketDetailView(generics.RetrieveUpdateAPIView):
     """
     GET   /api/my-tickets/<id>/   -> ticket details with comments
-    PATCH /api/my-tickets/<id>/   -> edit title/description/priority/category
+    PATCH /api/my-tickets/<id>/   -> edit title/description/priority/category/tags
                                      (only while status is 'new')
     """
     serializer_class = MyTicketSerializer
@@ -82,7 +87,9 @@ class MyTicketDetailView(generics.RetrieveUpdateAPIView):
 
     def get_queryset(self):
         # Sirf apne tickets, dusre ke ticket pe 404 milega
-        return Ticket.objects.filter(created_by=self.request.user)
+        return Ticket.objects.filter(
+            created_by=self.request.user
+        ).prefetch_related('tags')
 
     def perform_update(self, serializer):
         if serializer.instance.status != Ticket.Status.NEW:

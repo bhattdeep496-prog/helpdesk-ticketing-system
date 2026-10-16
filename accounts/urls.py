@@ -11,6 +11,7 @@ from accounts.views.comment_views import TicketCommentView
 from accounts.views.priority_views import PriorityListCreateView, PriorityDetailView
 from accounts.views.ticket_search_view import TicketSearchView
 from accounts.views.system_settings_view import SystemSettingsView
+from accounts.views.tag_views import AdminTagListCreateView, AdminTagDetailView
 from accounts.views.admin_ticket_views import (
     AdminTicketListView,
     AdminAssignTicketView,
@@ -121,4 +122,6 @@ urlpatterns = [
 
     # 3.10 Admin settings
     path('admin/settings/', SystemSettingsView.as_view(), name='admin-settings'),
+    path('admin/tags/', AdminTagListCreateView.as_view(), name='admin-tags'),
+    path('admin/tags/<int:pk>/', AdminTagDetailView.as_view(), name='admin-tag-detail'),
 ]
