@@ -1,8 +1,8 @@
 venv/
-db.sqlite3
 __pycache__/
-media/
-
-attachments/
-media/
+*.pyc
+db.sqlite3
 *.sqlite3
+media/
+attachments/
+.env
