@@ -1,4 +1,3 @@
-from unicodedata import name
 from django.urls import path
 from accounts.views.login_view import LoginView
 from accounts.views.logout_view import LogoutView
@@ -47,33 +46,27 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 from accounts.views.admin_ticket_detail_view import AdminTicketDetailView
- 
+
 try:
     import accounts.api_docs  # noqa: F401  (Swagger annotations)
 except Exception as exc:      # docs ki wajah se API kabhi band na ho
     print(f"API docs annotations skipped: {exc}")
 
 
-
 urlpatterns = [
-    #accounts 
+    # accounts
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('chage-password/', ChangePasswordView.as_view(), name='chage-password'),
 
-
-
-    #my tickets
+    # my tickets
     path('my-tickets/', MyTicketsView.as_view(), name='my-tickets'),
     path('my-tickets/<int:ticket_id>/', MyTicketDetailView.as_view(), name='my-ticket-detail'),
 
-
-
-    #user profile
+    # user profile
     path('user-profile/', UserProfileView.as_view(), name='user-profile'),
-    
 
     # Admin
     path("admin/users/", AdminUserListCreateView.as_view(), name="admin-users"),
@@ -81,32 +74,28 @@ urlpatterns = [
     path("admin/categories/", AdminCategoryListCreateView.as_view(), name="admin-categories"),
     path("admin/categories/<int:pk>/", AdminCategoryDetailView.as_view(), name="admin-category-detail"),
 
-
-      # Support staff
+    # Support staff
     path("support/tickets/", SupportTicketListView.as_view(), name="support-tickets"),
     path("support/tickets/<int:pk>/", SupportTicketDetailView.as_view(), name="support-ticket-detail"),
     path("register/", RegisterView.as_view(), name="register"),
- 
+
     # Customer
     path("my-tickets/<int:pk>/history/", MyTicketHistoryView.as_view(), name="my-ticket-history"),
 
-
-     # Admin: tickets + assignment (manual / auto)
+    # Admin: tickets + assignment (manual / auto)
     path("admin/tickets/", AdminTicketListView.as_view(), name="admin-tickets"),
     path("admin/tickets/<int:pk>/assign/", AdminAssignTicketView.as_view(), name="admin-ticket-assign"),
     path("admin/tickets/<int:pk>/auto-assign/", AdminAutoAssignTicketView.as_view(), name="admin-ticket-auto-assign"),
- 
+
     # Attachments (customer / assigned support / admin)
     path("tickets/<int:pk>/attachments/", TicketAttachmentView.as_view(), name="ticket-attachments"),
 
-
-      # 3.3 Comments
+    # 3.3 Comments
     path("tickets/<int:pk>/comments/", TicketCommentView.as_view(), name="ticket-comments"),
- 
+
     # 3.4 Priorities (Categories ke endpoints /api/admin/categories/ pe pehle se hain)
     path("priorities/", PriorityListCreateView.as_view(), name="priorities"),
     path("priorities/<int:pk>/", PriorityDetailView.as_view(), name="priority-detail"),
-
 
     # 3.5 Dashboards
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
@@ -114,26 +103,22 @@ urlpatterns = [
     path("dashboard/support/", SupportDashboardView.as_view(), name="dashboard-support"),
     path("dashboard/me/", CustomerDashboardView.as_view(), name="dashboard-customer"),
 
-
-# 3.6 Search & Filters
+    # 3.6 Search & Filters
     path("tickets/", TicketSearchView.as_view(), name="tickets-search"),
- 
-  # 3.7 Reporting
+
+    # 3.7 Reporting
     path("reports/summary/", SummaryReportView.as_view(), name="report-summary"),
     path("reports/tickets/csv/", TicketsCSVExportView.as_view(), name="report-tickets-csv"),
     path("reports/tickets/pdf/", TicketsPDFExportView.as_view(), name="report-tickets-pdf"),
 
-     # 3.8 Admin ticket CRUD
+    # 3.8 Admin ticket CRUD
     path("admin/tickets/<int:pk>/", AdminTicketDetailView.as_view(), name="admin-ticket-detail"),
- 
+
     # API documentation (Swagger / ReDoc)
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
-    #3.10 Admin setting
+    # 3.10 Admin settings
     path('admin/settings/', SystemSettingsView.as_view(), name='admin-settings'),
- 
- 
-
 ]
