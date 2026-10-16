@@ -1,4 +1,4 @@
-from django.conf import settings
+from tickets.site_settings import SystemSettings
 from django.contrib.auth import get_user_model, password_validation
 from rest_framework import serializers, status
 from rest_framework.authtoken.models import Token
@@ -57,7 +57,7 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        if not getattr(settings, 'ALLOW_PUBLIC_REGISTRATION', True):
+        if not SystemSettings.load().allow_public_registration:
             return Response(
                 {'error': 'Public registration is disabled. '
                           'Please ask an admin to create your account.'},

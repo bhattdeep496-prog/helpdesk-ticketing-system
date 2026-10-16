@@ -4,12 +4,14 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 
+
 log = logging.getLogger(__name__)
 
 
 def notifications_enabled():
-    """settings.py me NOTIFICATIONS_ENABLED = False karne par sab emails band."""
-    return getattr(settings, 'NOTIFICATIONS_ENABLED', True)
+    """Admin settings (database) me notifications_enabled False ho to sab emails band."""
+    from .site_settings import SystemSettings
+    return SystemSettings.load().notifications_enabled
 
 
 def _name(user):

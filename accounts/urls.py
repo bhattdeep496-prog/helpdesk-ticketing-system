@@ -11,6 +11,7 @@ from accounts.views.register_view import RegisterView
 from accounts.views.comment_views import TicketCommentView
 from accounts.views.priority_views import PriorityListCreateView, PriorityDetailView
 from accounts.views.ticket_search_view import TicketSearchView
+from accounts.views.system_settings_view import SystemSettingsView
 from accounts.views.admin_ticket_views import (
     AdminTicketListView,
     AdminAssignTicketView,
@@ -129,6 +130,9 @@ urlpatterns = [
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
+
+    #3.10 Admin setting
+    path('admin/settings/', SystemSettingsView.as_view(), name='admin-settings'),
  
  
 

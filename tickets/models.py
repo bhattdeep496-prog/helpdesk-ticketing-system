@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.text import slugify
 
 
+
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
@@ -139,3 +140,5 @@ class TicketHistory(models.Model):
 
     def __str__(self):
         return f"#{self.ticket_id}: {self.field} {self.old_value} -> {self.new_value}"
+
+from .site_settings import SystemSettings  # noqa: F401
