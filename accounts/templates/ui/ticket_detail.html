@@ -309,7 +309,7 @@
 
 {% block page_js %}
 <script>
-    const TICKET_ID = {{ ticket_id }};
+    const TICKET_ID = parseInt("{{ ticket_id }}", 10);
     const STATUS = { new: 'New', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

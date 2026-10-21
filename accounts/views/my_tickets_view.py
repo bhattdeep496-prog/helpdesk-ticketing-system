@@ -84,6 +84,8 @@ class MyTicketDetailView(generics.RetrieveUpdateAPIView):
     """
     serializer_class = MyTicketSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+    lookup_url_kwarg = 'ticket_id'   # urls.py mein route <int:ticket_id> hai
 
     def get_queryset(self):
         # Sirf apne tickets, dusre ke ticket pe 404 milega
