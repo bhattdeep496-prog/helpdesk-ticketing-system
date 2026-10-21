@@ -1,0 +1,270 @@
+{% extends "ui/base.html" %}
+{% block title %}Sign in{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-wrap {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+    }
+
+    .hero {
+        padding: 2.5rem 4rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.6rem, 5vw, 4.4rem);
+        font-weight: 800;
+        line-height: 1.02;
+        margin: 0 0 1.25rem;
+    }
+
+    .hero h1 span {
+        color: var(--sage);
+    }
+
+    .hero p.lead {
+        color: #55635b;
+        max-width: 30rem;
+        font-size: 1.05rem;
+    }
+
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+        margin-top: 1.75rem;
+    }
+
+    .chip {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: .45rem .9rem;
+        font-size: .85rem;
+        font-weight: 500;
+    }
+
+    .chip i {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--lime);
+        margin-right: .45rem;
+        box-shadow: 0 0 0 3px rgba(199, 242, 107, .35);
+    }
+
+    .hero small {
+        color: var(--sage);
+    }
+
+    .form-side {
+        background: var(--panel);
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-side::before {
+        content: "";
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(91, 61, 245, .35), transparent 70%);
+        top: -120px;
+        right: -120px;
+    }
+
+    .login-card {
+        position: relative;
+        width: 100%;
+        max-width: 410px;
+        background: var(--panel-2);
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 20px;
+        padding: 2.2rem;
+        color: #fff;
+    }
+
+    .login-card h2 {
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin: .35rem 0 .35rem;
+    }
+
+    .login-card .sub {
+        color: #93a39a;
+        font-size: .92rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .login-card label {
+        font-size: .8rem;
+        color: #b6c4bc;
+        font-weight: 500;
+        margin-bottom: .35rem;
+    }
+
+    .login-card .form-control {
+        background: #0e1815;
+        border: 1px solid rgba(255, 255, 255, .12);
+        color: #fff;
+        padding: .8rem 1rem;
+        border-radius: 12px;
+    }
+
+    .login-card .form-control:focus {
+        border-color: var(--lime);
+        box-shadow: 0 0 0 3px rgba(199, 242, 107, .18);
+        background: #0e1815;
+        color: #fff;
+    }
+
+    .pw-wrap {
+        position: relative;
+    }
+
+    .pw-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: 0;
+        color: #93a39a;
+        font-size: .8rem;
+        font-weight: 600;
+    }
+
+    #error-box {
+        display: none;
+        background: rgba(229, 72, 77, .12);
+        color: #ff9a9d;
+        border: 1px solid rgba(229, 72, 77, .35);
+        border-radius: 12px;
+        padding: .7rem .9rem;
+        font-size: .88rem;
+        margin-bottom: 1rem;
+    }
+
+    .forgot {
+        color: #93a39a;
+        font-size: .85rem;
+        text-decoration: none;
+    }
+
+    .forgot:hover {
+        color: var(--lime);
+    }
+
+    @media (max-width: 900px) {
+        .login-wrap {
+            grid-template-columns: 1fr;
+        }
+
+        .hero {
+            padding: 1.75rem 1.5rem 2.5rem;
+        }
+
+        .form-side {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-wrap">
+    <section class="hero">
+        <a class="brand" href="/"><span class="brand-mark">D</span> Deskly</a>
+
+        <div class="fade-up my-5">
+            <div class="eyebrow mb-3">● Helpdesk &amp; ticketing</div>
+            <h1>Support, <br><span>without the chaos.</span></h1>
+            <p class="lead">Raise tickets, track every update and resolve faster. One place for customers, support staff
+                and admins.</p>
+            <div class="chips">
+                <span class="chip"><i></i>Live ticket status</span>
+                <span class="chip"><i></i>Role-based access</span>
+                <span class="chip"><i></i>Email updates</span>
+                <span class="chip"><i></i>CSV &amp; PDF reports</span>
+            </div>
+        </div>
+
+        <small>© Deskly · Built with Django &amp; DRF</small>
+    </section>
+
+    <section class="form-side">
+        <div class="login-card fade-up">
+            <div class="eyebrow">Welcome back</div>
+            <h2>Sign in</h2>
+            <p class="sub">Use your Deskly account to continue.</p>
+
+            <div id="error-box"></div>
+
+            <form id="login-form" novalidate>
+                <div class="mb-3">
+                    <label for="username">Username</label>
+                    <input id="username" class="form-control" autocomplete="username" required>
+                </div>
+                <div class="mb-2">
+                    <label for="password">Password</label>
+                    <div class="pw-wrap">
+                        <input id="password" type="password" class="form-control" autocomplete="current-password"
+                            required>
+                        <button type="button" class="pw-toggle" id="pw-toggle">Show</button>
+                    </div>
+                </div>
+                <div class="text-end mb-4"><a href="#" class="forgot">Forgot password?</a></div>
+                <button id="submit-btn" class="btn btn-violet w-100" type="submit">Sign in</button>
+            </form>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (Desk.getToken()) { window.location = '/dashboard/'; }
+
+    const form = document.getElementById('login-form');
+    const errorBox = document.getElementById('error-box');
+    const btn = document.getElementById('submit-btn');
+
+    document.getElementById('pw-toggle').addEventListener('click', (e) => {
+        const pw = document.getElementById('password');
+        const show = pw.type === 'password';
+        pw.type = show ? 'text' : 'password';
+        e.target.textContent = show ? 'Hide' : 'Show';
+    });
+
+    function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBox.style.display = 'none';
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        if (!username || !password) { showError('Please enter your username and password.'); return; }
+
+        btn.disabled = true; btn.textContent = 'Signing in...';
+        const res = await Desk.api('/login/', { method: 'POST', body: { username, password } });
+        btn.disabled = false; btn.textContent = 'Sign in';
+
+        if (res.ok && res.data) {
+            const token = res.data.token || res.data.key || res.data.access;
+            if (token) { Desk.setToken(token); window.location = '/dashboard/'; return; }
+        }
+        const d = res.data || {};
+        showError(d.detail || d.error || d.non_field_errors?.[0] || 'Login failed. Check your details and try again.');
+    });
+</script>
+{% endblock %}

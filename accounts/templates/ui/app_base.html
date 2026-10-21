@@ -1,0 +1,415 @@
+{% extends "ui/base.html" %}
+
+{% block extra_css %}
+<script>
+    (function () {
+        var t = localStorage.getItem('deskly_theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.setAttribute('data-bs-theme', t);
+    })();
+</script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    html[data-theme="dark"] {
+        --bg: #0a0a0b;
+        --side: #0a0a0b;
+        --card: #111113;
+        --card-2: #17171a;
+        --border: #232327;
+        --text: #f4f4f5;
+        --muted: #8b8b95;
+        --accent: #10b981;
+        --accent-soft: rgba(16, 185, 129, .14);
+        --hover: #18181b;
+        --grid: rgba(255, 255, 255, .06);
+    }
+
+    html[data-theme="light"] {
+        --bg: #f4f5f3;
+        --side: #ffffff;
+        --card: #ffffff;
+        --card-2: #f6f7f5;
+        --border: #e5e7e4;
+        --text: #0f1512;
+        --muted: #66726b;
+        --accent: #059669;
+        --accent-soft: rgba(5, 150, 105, .12);
+        --hover: #f0f2ef;
+        --grid: rgba(0, 0, 0, .06);
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    .app {
+        display: flex;
+        min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+        width: 260px;
+        background: var(--side);
+        border-right: 1px solid var(--border);
+        position: fixed;
+        inset: 0 auto 0 0;
+        display: flex;
+        flex-direction: column;
+        z-index: 1040;
+        transition: transform .25s ease;
+    }
+
+    .sidebar .brand {
+        padding: 1.1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+    }
+
+    .sidebar .brand-mark {
+        background: var(--accent);
+    }
+
+    .nav-group {
+        padding: 1.1rem 1rem .4rem;
+    }
+
+    .nav-group .eyebrow {
+        padding: 0 .5rem;
+    }
+
+    .nav-link-x {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .62rem .75rem;
+        margin: .12rem 0;
+        border-radius: 10px;
+        color: var(--muted);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: .92rem;
+        transition: all .15s;
+    }
+
+    .nav-link-x i {
+        font-size: 1.05rem;
+    }
+
+    .nav-link-x:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+
+    .nav-link-x.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+
+    .side-user {
+        margin-top: auto;
+        border-top: 1px solid var(--border);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: .85rem;
+        flex: none;
+    }
+
+    .side-user .name {
+        font-weight: 600;
+        font-size: .9rem;
+        line-height: 1.2;
+    }
+
+    .side-user .role {
+        color: var(--muted);
+        font-size: .78rem;
+        text-transform: capitalize;
+    }
+
+    .icon-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        transition: all .15s;
+        flex: none;
+    }
+
+    .icon-btn:hover {
+        color: var(--text);
+        background: var(--hover);
+    }
+
+    /* Main */
+    .main {
+        margin-left: 260px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .topbar {
+        height: 68px;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: 0 1.75rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+    }
+
+    .search {
+        flex: 1;
+        max-width: 360px;
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: 0 .9rem;
+        height: 40px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--muted);
+    }
+
+    .search input {
+        background: none;
+        border: 0;
+        outline: none;
+        color: var(--text);
+        width: 100%;
+        font-size: .9rem;
+    }
+
+    .btn-accent {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        font-weight: 600;
+        font-size: .88rem;
+        padding: .55rem 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .btn-accent:hover {
+        filter: brightness(1.08);
+        color: #fff;
+    }
+
+    .content {
+        padding: 1.75rem;
+        max-width: 1500px;
+    }
+
+    .page-title {
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .page-sub {
+        color: var(--muted);
+        margin: .25rem 0 1.5rem;
+        font-size: .95rem;
+    }
+
+    .cardx {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.25rem;
+    }
+
+    .cardx h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .cardx .muted {
+        color: var(--muted);
+        font-size: .85rem;
+    }
+
+    .menu-btn {
+        display: none;
+    }
+
+    .backdrop {
+        display: none;
+    }
+
+    @media (max-width: 991px) {
+        .sidebar {
+            transform: translateX(-100%);
+        }
+
+        .sidebar.open {
+            transform: none;
+        }
+
+        .backdrop.show {
+            display: block;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .55);
+            z-index: 1035;
+        }
+
+        .main {
+            margin-left: 0;
+        }
+
+        .menu-btn {
+            display: grid;
+        }
+
+        .topbar {
+            padding: 0 1rem;
+        }
+
+        .content {
+            padding: 1.1rem;
+        }
+    }
+</style>
+{% block page_css %}{% endblock %}
+{% endblock %}
+
+{% block body %}
+<div class="app">
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="/dashboard/"><span class="brand-mark">D</span> Deskly</a>
+
+        <div class="nav-group">
+            <div class="eyebrow mb-2">Overview</div>
+            <a class="nav-link-x {% block nav_dashboard %}{% endblock %}" href="/dashboard/"><i
+                    class="bi bi-grid-1x2"></i> Dashboard</a>
+            <a class="nav-link-x {% block nav_tickets %}{% endblock %}" href="/tickets/"><i
+                    class="bi bi-ticket-perforated"></i> Tickets</a>
+            <a class="nav-link-x {% block nav_new %}{% endblock %}" href="/tickets/new/"><i
+                    class="bi bi-plus-circle"></i> New ticket</a>
+        </div>
+        <div class="nav-group" id="staff-nav" style="display:none">
+            <div class="eyebrow mb-2">Manage</div>
+            <a class="nav-link-x" href="/api/reports/tickets/csv/" target="_blank"><i class="bi bi-filetype-csv"></i>
+                Export CSV</a>
+            <a class="nav-link-x" href="/api/docs/" target="_blank"><i class="bi bi-braces"></i> API docs</a>
+        </div>
+
+        <div class="side-user">
+            <div class="avatar" id="u-avatar">U</div>
+            <div class="flex-grow-1" style="min-width:0">
+                <div class="name text-truncate" id="u-name">User</div>
+                <div class="role" id="u-role">&nbsp;</div>
+            </div>
+            <button class="icon-btn" id="logout-btn" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+        </div>
+    </aside>
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="icon-btn menu-btn" id="menu-btn"><i class="bi bi-list"></i></button>
+            <form class="search" id="search-form">
+                <i class="bi bi-search"></i>
+                <input id="search-input" placeholder="Search tickets by ID, title or keyword...">
+            </form>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <a class="btn-accent d-none d-sm-inline-flex" href="/tickets/new/"><i class="bi bi-plus-lg"></i> New
+                    ticket</a>
+                <button class="icon-btn" id="theme-btn" title="Toggle theme"><i class="bi bi-sun"
+                        id="theme-icon"></i></button>
+            </div>
+        </header>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (!Desk.getToken()) { window.location = '/login/'; }
+
+    // Theme toggle
+    const themeIcon = document.getElementById('theme-icon');
+    function applyThemeIcon() {
+        const t = document.documentElement.getAttribute('data-theme');
+        themeIcon.className = t === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+    }
+    applyThemeIcon();
+    document.getElementById('theme-btn').addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('deskly_theme', next);
+        document.documentElement.setAttribute('data-theme', next);
+        document.documentElement.setAttribute('data-bs-theme', next);
+        applyThemeIcon();
+        window.dispatchEvent(new Event('themechange'));
+    });
+
+    // Mobile sidebar
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    document.getElementById('menu-btn').addEventListener('click', () => { sidebar.classList.add('open'); backdrop.classList.add('show'); });
+    backdrop.addEventListener('click', () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); });
+
+    // Search -> tickets page
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const q = document.getElementById('search-input').value.trim();
+        window.location = '/tickets/' + (q ? '?search=' + encodeURIComponent(q) : '');
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        try { await Desk.api('/logout/', { method: 'POST' }); } catch (e) { }
+        Desk.logout();
+    });
+
+    // Logged-in user info (jo fields mile unhi se kaam chalega)
+    const Me = { name: '', role: '' };
+    (async () => {
+        const res = await Desk.api('/user-profile/');
+        if (res.ok && res.data) {
+            const d = res.data;
+            const full = [d.first_name, d.last_name].filter(Boolean).join(' ');
+            Me.name = full || d.username || 'User';
+            Me.role = (d.role || '').toString();
+            document.getElementById('u-name').textContent = Me.name;
+            document.getElementById('u-role').textContent = Me.role.replace('_', ' ');
+            document.getElementById('u-avatar').textContent = Me.name.slice(0, 2).toUpperCase();
+            if (Me.role === 'admin' || Me.role === 'support') {
+                document.getElementById('staff-nav').style.display = 'block';
+            }
+            window.dispatchEvent(new Event('medata'));
+        }
+    })();
+</script>
+{% block page_js %}{% endblock %}
+{% endblock %}

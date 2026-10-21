@@ -1,0 +1,485 @@
+{% extends "ui/app_base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block page_css %}
+<style>
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .stat {
+        position: relative;
+        overflow: hidden;
+        padding-bottom: 0;
+    }
+
+    .stat .label {
+        color: var(--muted);
+        font-size: .85rem;
+        font-weight: 500;
+    }
+
+    .stat .value {
+        font-family: 'Manrope', sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1.15;
+        margin: .25rem 0 .1rem;
+    }
+
+    .stat .delta {
+        font-size: .8rem;
+        font-weight: 600;
+    }
+
+    .stat .ico {
+        position: absolute;
+        top: 1.1rem;
+        right: 1.1rem;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+    }
+
+    .stat canvas {
+        display: block;
+        width: 100% !important;
+        height: 70px !important;
+        margin: .4rem -1.25rem 0;
+        width: calc(100% + 2.5rem) !important;
+        max-width: none;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .seg {
+        display: inline-flex;
+        background: var(--card-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 3px;
+    }
+
+    .seg button {
+        background: none;
+        border: 0;
+        color: var(--muted);
+        font-size: .82rem;
+        font-weight: 600;
+        padding: .35rem .8rem;
+        border-radius: 8px;
+    }
+
+    .seg button.on {
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    .chart-box {
+        position: relative;
+        height: 290px;
+        margin-top: 1rem;
+    }
+
+    .donut-box {
+        position: relative;
+        width: 170px;
+        height: 170px;
+        margin: 1rem auto .5rem;
+    }
+
+    .donut-center {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        pointer-events: none;
+    }
+
+    .donut-center b {
+        font-family: 'Manrope', sans-serif;
+        font-size: 1.7rem;
+        display: block;
+        line-height: 1;
+    }
+
+    .donut-center span {
+        color: var(--muted);
+        font-size: .75rem;
+    }
+
+    .legend-row {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        font-size: .88rem;
+        padding: .28rem 0;
+    }
+
+    .legend-row .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+    }
+
+    .legend-row .n {
+        margin-left: auto;
+        font-weight: 700;
+    }
+
+    .bar-row {
+        margin-bottom: 1rem;
+    }
+
+    .bar-row .top {
+        display: flex;
+        justify-content: space-between;
+        font-size: .85rem;
+        font-weight: 600;
+        margin-bottom: .35rem;
+        text-transform: capitalize;
+    }
+
+    .bar-track {
+        height: 7px;
+        background: var(--card-2);
+        border-radius: 99px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 99px;
+        transition: width .6s ease;
+    }
+
+    .t {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: .75rem;
+    }
+
+    .t th {
+        color: var(--muted);
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        font-weight: 600;
+        text-align: left;
+        padding: .6rem .5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .t td {
+        padding: .8rem .5rem;
+        border-bottom: 1px solid var(--border);
+        font-size: .9rem;
+        vertical-align: middle;
+    }
+
+    .t tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .t a {
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .t a:hover {
+        color: var(--accent);
+    }
+
+    .pill {
+        padding: .25rem .65rem;
+        border-radius: 999px;
+        font-size: .74rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .p-new {
+        background: rgba(139, 92, 246, .16);
+        color: #a78bfa;
+    }
+
+    .p-in_progress {
+        background: rgba(245, 158, 11, .16);
+        color: #f59e0b;
+    }
+
+    .p-resolved {
+        background: rgba(16, 185, 129, .16);
+        color: #10b981;
+    }
+
+    .p-closed {
+        background: rgba(100, 116, 139, .2);
+        color: #94a3b8;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    @media (max-width: 1199px) {
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-2 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 575px) {
+        .stat-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Dashboard</h1>
+<p class="page-sub" id="welcome">Here's what's happening with your tickets today.</p>
+
+<div class="stat-grid" id="stat-grid"></div>
+
+<div class="grid-2">
+    <div class="cardx">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h3>Overview</h3>
+                <div class="muted">Daily activity, last 30 days</div>
+            </div>
+            <div class="seg" id="seg">
+                <button class="on" data-k="opened">Opened</button>
+                <button data-k="resolved">Resolved</button>
+            </div>
+        </div>
+        <div class="chart-box"><canvas id="mainChart"></canvas></div>
+    </div>
+
+    <div class="cardx">
+        <h3>By status</h3>
+        <div class="muted">Where your tickets stand</div>
+        <div class="donut-box">
+            <canvas id="donut"></canvas>
+            <div class="donut-center">
+                <div><b id="donut-total">0</b><span>Tickets</span></div>
+            </div>
+        </div>
+        <div id="legend"></div>
+    </div>
+</div>
+
+<div class="grid-2">
+    <div class="cardx">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3>Recent tickets</h3>
+                <div class="muted">Latest activity</div>
+            </div>
+            <a href="/tickets/" class="btn-accent">View all</a>
+        </div>
+        <div class="table-wrap">
+            <table class="t">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Assigned</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-body">
+                    <tr>
+                        <td colspan="6" class="muted">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="cardx">
+        <h3>By priority</h3>
+        <div class="muted mb-3">Latest 100 tickets</div>
+        <div id="prio-bars"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+    const STATUS = { new: 'New', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
+    const COLORS = { new: '#8b5cf6', in_progress: '#f59e0b', resolved: '#10b981', closed: '#64748b' };
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const pad = (n) => String(n).padStart(2, '0');
+    const key = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+    let tickets = [], counts = { total: 0, new: 0, in_progress: 0, resolved: 0, closed: 0 };
+    let charts = {}, mainKind = 'opened';
+
+    function lastDays(n) {
+        const out = [];
+        for (let i = n - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); out.push(d); }
+        return out;
+    }
+    function series(list, field, n) {
+        const days = lastDays(n), map = {};
+        days.forEach(d => map[key(d)] = 0);
+        list.forEach(t => { if (t[field]) { const k = key(new Date(t[field])); if (k in map) map[k]++; } });
+        return { labels: days.map(d => d.toLocaleDateString('en', { month: 'short', day: 'numeric' })), data: days.map(d => map[key(d)]) };
+    }
+    function lastWeek(list, field) {
+        const since = Date.now() - 7 * 864e5;
+        return list.filter(t => t[field] && new Date(t[field]).getTime() >= since).length;
+    }
+    function killChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+    function renderStats() {
+        const defs = [
+            { k: 'total', label: 'Total tickets', icon: 'bi-collection', color: '#10b981', list: tickets, field: 'created_at' },
+            { k: 'new', label: 'New', icon: 'bi-stars', color: '#8b5cf6', list: tickets.filter(t => t.status === 'new'), field: 'created_at' },
+            { k: 'in_progress', label: 'In progress', icon: 'bi-hourglass-split', color: '#f59e0b', list: tickets.filter(t => t.status === 'in_progress'), field: 'created_at' },
+            { k: 'resolved', label: 'Resolved', icon: 'bi-check2-circle', color: '#10b981', list: tickets.filter(t => t.status === 'resolved' || t.status === 'closed'), field: 'resolved_at' },
+        ];
+        const grid = document.getElementById('stat-grid');
+        grid.innerHTML = defs.map(d => `
+      <div class="cardx stat">
+        <div class="label">${d.label}</div>
+        <div class="value">${counts[d.k]}</div>
+        <div class="delta" style="color:${d.color}"><i class="bi bi-graph-up-arrow"></i> ${lastWeek(d.list, d.field)} in last 7 days</div>
+        <div class="ico" style="background:${d.color}22;color:${d.color}"><i class="bi ${d.icon}"></i></div>
+        <canvas id="spark-${d.k}"></canvas>
+      </div>`).join('');
+        defs.forEach(d => {
+            killChart('spark-' + d.k);
+            const s = series(d.list, d.field, 14);
+            charts['spark-' + d.k] = new Chart(document.getElementById('spark-' + d.k), {
+                type: 'line',
+                data: {
+                    labels: s.labels, datasets: [{
+                        data: s.data, borderColor: d.color, borderWidth: 2, tension: .4, pointRadius: 0, fill: true,
+                        backgroundColor: (c) => { const g = c.chart.ctx.createLinearGradient(0, 0, 0, 70); g.addColorStop(0, d.color + '44'); g.addColorStop(1, d.color + '00'); return g; }
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: { x: { display: false }, y: { display: false, beginAtZero: true } }, layout: { padding: 0 }
+                }
+            });
+        });
+    }
+
+    function renderMain() {
+        killChart('main');
+        const field = mainKind === 'opened' ? 'created_at' : 'resolved_at';
+        const s = series(tickets, field, 30);
+        const accent = css('--accent');
+        charts.main = new Chart(document.getElementById('mainChart'), {
+            type: 'line',
+            data: {
+                labels: s.labels, datasets: [{
+                    label: mainKind === 'opened' ? 'Opened' : 'Resolved', data: s.data, borderColor: accent, borderWidth: 2.5, tension: .4, pointRadius: 0, pointHoverRadius: 5, fill: true,
+                    backgroundColor: (c) => { const g = c.chart.ctx.createLinearGradient(0, 0, 0, 290); g.addColorStop(0, accent + '55'); g.addColorStop(1, accent + '00'); return g; }
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: css('--muted'), maxTicksLimit: 8, font: { size: 11 } }, border: { display: false } },
+                    y: { beginAtZero: true, grid: { color: css('--grid') }, ticks: { color: css('--muted'), precision: 0, font: { size: 11 } }, border: { display: false } }
+                }
+            }
+        });
+    }
+
+    function renderDonut() {
+        killChart('donut');
+        const keys = ['new', 'in_progress', 'resolved', 'closed'];
+        document.getElementById('donut-total').textContent = counts.total;
+        charts.donut = new Chart(document.getElementById('donut'), {
+            type: 'doughnut',
+            data: { labels: keys.map(k => STATUS[k]), datasets: [{ data: keys.map(k => counts[k]), backgroundColor: keys.map(k => COLORS[k]), borderColor: css('--card'), borderWidth: 3 }] },
+            options: { cutout: '72%', plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        });
+        document.getElementById('legend').innerHTML = keys.map(k => `
+      <div class="legend-row"><span class="dot" style="background:${COLORS[k]}"></span>${STATUS[k]}<span class="n">${counts[k]}</span></div>`).join('');
+    }
+
+    function renderPriority() {
+        const m = {};
+        tickets.forEach(t => m[t.priority] = (m[t.priority] || 0) + 1);
+        const rows = Object.entries(m).sort((a, b) => b[1] - a[1]);
+        const max = rows.length ? rows[0][1] : 1;
+        document.getElementById('prio-bars').innerHTML = rows.length ? rows.map(([p, n]) => `
+      <div class="bar-row"><div class="top"><span>${esc(p.replace('_', ' '))}</span><span>${n}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(n / max) * 100}%"></div></div></div>`).join('')
+            : '<div class="muted">No tickets yet.</div>';
+    }
+
+    function renderRecent() {
+        const body = document.getElementById('recent-body');
+        if (!tickets.length) { body.innerHTML = '<tr><td colspan="6" class="muted">No tickets yet.</td></tr>'; return; }
+        body.innerHTML = tickets.slice(0, 8).map(t => `
+      <tr>
+        <td class="muted">#${t.id}</td>
+        <td><a href="/tickets/${t.id}/">${esc(t.title)}</a></td>
+        <td><span class="pill p-${t.status}">${STATUS[t.status] || esc(t.status)}</span></td>
+        <td style="text-transform:capitalize">${esc((t.priority || '').replace('_', ' '))}</td>
+        <td>${esc(t.assigned_to || '—')}</td>
+        <td class="muted">${new Date(t.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</td>
+      </tr>`).join('');
+    }
+
+    function renderAll() { renderStats(); renderMain(); renderDonut(); renderPriority(); renderRecent(); }
+
+    async function load() {
+        const [list, ...cs] = await Promise.all([
+            Desk.api('/tickets/?page_size=100&ordering=-created_at'),
+            Desk.api('/tickets/?page_size=1'),
+            Desk.api('/tickets/?status=new&page_size=1'),
+            Desk.api('/tickets/?status=in_progress&page_size=1'),
+            Desk.api('/tickets/?status=resolved&page_size=1'),
+            Desk.api('/tickets/?status=closed&page_size=1'),
+        ]);
+        tickets = (list.data && list.data.results) || [];
+        const n = (r) => (r.data && r.data.count) || 0;
+        counts = { total: n(cs[0]), new: n(cs[1]), in_progress: n(cs[2]), resolved: n(cs[3]), closed: n(cs[4]) };
+        renderAll();
+    }
+
+    document.getElementById('seg').addEventListener('click', (e) => {
+        const b = e.target.closest('button'); if (!b) return;
+        document.querySelectorAll('#seg button').forEach(x => x.classList.remove('on'));
+        b.classList.add('on'); mainKind = b.dataset.k; renderMain();
+    });
+    window.addEventListener('themechange', renderAll);
+    window.addEventListener('medata', () => {
+        document.getElementById('welcome').textContent = 'Welcome back, ' + Me.name + '. Here is what is happening with your tickets today.';
+    });
+    load();
+</script>
+{% endblock %}

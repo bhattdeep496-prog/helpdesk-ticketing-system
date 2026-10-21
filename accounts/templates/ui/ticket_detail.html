@@ -1,0 +1,420 @@
+{% extends "ui/app_base.html" %}
+{% block title %}Ticket #{{ ticket_id }}{% endblock %}
+{% block nav_tickets %}active{% endblock %}
+
+{% block page_css %}
+<style>
+    .back {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: .88rem;
+    }
+
+    .back:hover {
+        color: var(--text);
+    }
+
+    .layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .pill {
+        padding: .28rem .75rem;
+        border-radius: 999px;
+        font-size: .78rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .p-new {
+        background: rgba(139, 92, 246, .16);
+        color: #a78bfa;
+    }
+
+    .p-in_progress {
+        background: rgba(245, 158, 11, .16);
+        color: #f59e0b;
+    }
+
+    .p-resolved {
+        background: rgba(16, 185, 129, .16);
+        color: #10b981;
+    }
+
+    .p-closed {
+        background: rgba(100, 116, 139, .2);
+        color: #94a3b8;
+    }
+
+    .desc {
+        white-space: pre-wrap;
+        line-height: 1.65;
+        margin-top: .75rem;
+    }
+
+    .tag {
+        display: inline-block;
+        background: var(--card-2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+        border-radius: 6px;
+        padding: .1rem .5rem;
+        font-size: .75rem;
+        margin: .1rem .25rem .1rem 0;
+    }
+
+    .kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .65rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: .9rem;
+    }
+
+    .kv:last-child {
+        border-bottom: 0;
+    }
+
+    .kv span:first-child {
+        color: var(--muted);
+    }
+
+    .kv b {
+        font-weight: 600;
+        text-align: right;
+        text-transform: capitalize;
+    }
+
+    .cmt {
+        display: flex;
+        gap: .75rem;
+        padding: .9rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .cmt:last-child {
+        border-bottom: 0;
+    }
+
+    .cmt .body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .cmt .who {
+        font-weight: 600;
+        font-size: .9rem;
+    }
+
+    .cmt .when {
+        color: var(--muted);
+        font-size: .78rem;
+        margin-left: .4rem;
+        font-weight: 400;
+    }
+
+    .cmt .txt {
+        white-space: pre-wrap;
+        margin-top: .2rem;
+        font-size: .92rem;
+    }
+
+    .internal {
+        background: rgba(245, 158, 11, .1);
+        border: 1px dashed rgba(245, 158, 11, .5);
+        border-radius: 10px;
+        padding: .6rem .8rem;
+    }
+
+    .badge-int {
+        font-size: .68rem;
+        color: #f59e0b;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin-left: .4rem;
+    }
+
+    .fx {
+        width: 100%;
+        background: var(--card-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: .65rem .8rem;
+        font-size: .9rem;
+        outline: none;
+    }
+
+    .fx:focus {
+        border-color: var(--accent);
+    }
+
+    textarea.fx {
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .file-row {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .55rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: .88rem;
+    }
+
+    .file-row:last-child {
+        border-bottom: 0;
+    }
+
+    .file-row a {
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 500;
+        word-break: break-all;
+    }
+
+    .file-row a:hover {
+        color: var(--accent);
+    }
+
+    .notice {
+        display: none;
+        border-radius: 10px;
+        padding: .6rem .85rem;
+        font-size: .85rem;
+        margin-top: .6rem;
+    }
+
+    .notice.err {
+        background: rgba(229, 72, 77, .12);
+        color: #ff8a8e;
+        border: 1px solid rgba(229, 72, 77, .35);
+    }
+
+    .notice.ok {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid var(--accent);
+    }
+
+    .btn-ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: .5rem .9rem;
+        font-weight: 600;
+        font-size: .85rem;
+    }
+
+    .btn-ghost:hover {
+        background: var(--hover);
+    }
+
+    @media (max-width: 991px) {
+        .layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a class="back" href="/tickets/"><i class="bi bi-arrow-left"></i> All tickets</a>
+
+<div id="loading" class="page-sub mt-3">Loading ticket...</div>
+<div id="error" class="cardx mt-3" style="display:none"></div>
+
+<div id="view" style="display:none">
+    <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mb-3">
+        <h1 class="page-title" id="t-title"></h1>
+        <span class="pill" id="t-status"></span>
+    </div>
+
+    <div class="layout">
+        <div>
+            <div class="cardx mb-3">
+                <h3>Description</h3>
+                <div class="desc" id="t-desc"></div>
+                <div class="mt-3" id="t-tags"></div>
+            </div>
+
+            <div class="cardx mb-3">
+                <h3>Conversation</h3>
+                <div id="comments">
+                    <div class="muted mt-2">Loading...</div>
+                </div>
+                <form id="c-form" class="mt-3">
+                    <textarea class="fx" id="c-body" placeholder="Write a reply..."></textarea>
+                    <div class="d-flex align-items-center justify-content-between mt-2 flex-wrap gap-2">
+                        <label id="int-wrap" class="muted" style="display:none; font-size:.85rem"><input type="checkbox"
+                                id="c-internal"> Internal note (staff only)</label>
+                        <button class="btn-accent ms-auto" type="submit"><i class="bi bi-send"></i> Send</button>
+                    </div>
+                    <div class="notice err" id="c-err"></div>
+                </form>
+            </div>
+
+            <div class="cardx">
+                <h3>Attachments</h3>
+                <div id="files">
+                    <div class="muted mt-2">Loading...</div>
+                </div>
+                <div class="d-flex gap-2 mt-3 align-items-center flex-wrap">
+                    <input type="file" id="f-input" multiple accept=".jpg,.jpeg,.png,.gif,.pdf" class="fx"
+                        style="max-width:320px">
+                    <button class="btn-ghost" id="f-upload" type="button"><i class="bi bi-upload"></i> Upload</button>
+                </div>
+                <div class="notice err" id="f-err"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="cardx">
+                <h3 class="mb-2">Details</h3>
+                <div class="kv"><span>Ticket</span><b>#<span id="d-id"></span></b></div>
+                <div class="kv"><span>Priority</span><b id="d-priority"></b></div>
+                <div class="kv"><span>Category</span><b id="d-category"></b></div>
+                <div class="kv"><span>Created by</span><b id="d-by"></b></div>
+                <div class="kv"><span>Assigned to</span><b id="d-assigned"></b></div>
+                <div class="kv"><span>Created</span><b id="d-created"></b></div>
+                <div class="kv"><span>Updated</span><b id="d-updated"></b></div>
+
+                <div id="staff-box" style="display:none" class="mt-3">
+                    <label class="muted"
+                        style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600">Update
+                        status</label>
+                    <div class="d-flex gap-2 mt-1">
+                        <select class="fx" id="s-select">
+                            <option value="new">New</option>
+                            <option value="in_progress">In progress</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                        <button class="btn-accent" id="s-save" type="button">Save</button>
+                    </div>
+                    <div class="notice" id="s-msg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+<script>
+    const TICKET_ID = {{ ticket_id }};
+    const STATUS = { new: 'New', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const listOf = (d) => Array.isArray(d) ? d : ((d && d.results) || []);
+    const fmt = (v) => v ? new Date(v).toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    const flatten = (d) => !d ? 'Something went wrong.' : (typeof d === 'string' ? d : Object.values(d).flat().join(' '));
+    function note(el, text, kind) { el.textContent = text; el.className = 'notice ' + kind; el.style.display = 'block'; }
+
+    let ticketUrl = '/my-tickets/' + TICKET_ID + '/';
+    let isStaff = false;
+
+    function whenMe(cb) { if (Me.role) cb(); else window.addEventListener('medata', cb, { once: true }); }
+
+    function render(t) {
+        $('t-title').textContent = t.title;
+        $('t-status').textContent = STATUS[t.status] || t.status;
+        $('t-status').className = 'pill p-' + t.status;
+        $('t-desc').textContent = t.description || '';
+        const tags = t.tag_names || [];
+        $('t-tags').innerHTML = tags.map(n => '<span class="tag">' + esc(n) + '</span>').join('');
+        $('d-id').textContent = t.id;
+        $('d-priority').textContent = (t.priority || '—').replace('_', ' ');
+        $('d-category').textContent = t.category_name || '—';
+        $('d-by').textContent = t.created_by || '—';
+        $('d-assigned').textContent = t.assigned_to || 'Unassigned';
+        $('d-created').textContent = fmt(t.created_at);
+        $('d-updated').textContent = fmt(t.updated_at);
+        $('s-select').value = t.status;
+        $('loading').style.display = 'none';
+        $('view').style.display = 'block';
+    }
+
+    async function loadTicket() {
+        const role = Me.role;
+        isStaff = role === 'admin' || role === 'support';
+        if (role === 'admin') ticketUrl = '/admin/tickets/' + TICKET_ID + '/';
+        else if (role === 'support') ticketUrl = '/support/tickets/' + TICKET_ID + '/';
+        let res = await Desk.api(ticketUrl);
+        if (!res.ok && ticketUrl !== '/my-tickets/' + TICKET_ID + '/') {
+            const alt = await Desk.api('/my-tickets/' + TICKET_ID + '/');
+            if (alt.ok) { res = alt; ticketUrl = '/my-tickets/' + TICKET_ID + '/'; }
+        }
+        if (!res.ok) {
+            $('loading').style.display = 'none';
+            $('error').style.display = 'block';
+            $('error').innerHTML = '<h3>Ticket not found</h3><div class="muted mt-1">' + esc(res.status === 404 ? 'It does not exist, or you do not have access to it.' : flatten(res.data)) + '</div>';
+            return;
+        }
+        render(res.data);
+        $('staff-box').style.display = isStaff ? 'block' : 'none';
+        $('int-wrap').style.display = isStaff ? 'block' : 'none';
+        loadComments(); loadFiles();
+    }
+
+    async function loadComments() {
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/comments/');
+        const items = listOf(res.data);
+        if (!res.ok) { $('comments').innerHTML = '<div class="muted mt-2">Could not load comments.</div>'; return; }
+        $('comments').innerHTML = items.length ? items.map(c => {
+            const who = c.author_name || c.author || 'User';
+            return `<div class="cmt"><div class="avatar">${esc(String(who).slice(0, 2).toUpperCase())}</div>
+        <div class="body"><div class="who">${esc(who)}${c.is_internal ? '<span class="badge-int">Internal</span>' : ''}<span class="when">${fmt(c.created_at)}</span></div>
+        <div class="txt ${c.is_internal ? 'internal' : ''}">${esc(c.body)}</div></div></div>`;
+        }).join('') : '<div class="muted mt-2">No messages yet. Start the conversation below.</div>';
+    }
+
+    async function loadFiles() {
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/');
+        const items = listOf(res.data);
+        if (!res.ok) { $('files').innerHTML = '<div class="muted mt-2">Could not load attachments.</div>'; return; }
+        $('files').innerHTML = items.length ? items.map(f => `
+      <div class="file-row"><i class="bi bi-paperclip"></i>
+        <a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.filename)}</a>
+        <span class="muted ms-auto" style="font-size:.78rem">${esc(f.uploaded_by || '')}</span></div>`).join('')
+            : '<div class="muted mt-2">No files attached.</div>';
+    }
+
+    $('c-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = $('c-body').value.trim();
+        if (!body) { note($('c-err'), 'Please write a message first.', 'err'); return; }
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/comments/', { method: 'POST', body: { body, is_internal: isStaff && $('c-internal').checked } });
+        if (!res.ok) { note($('c-err'), flatten(res.data), 'err'); return; }
+        $('c-err').style.display = 'none'; $('c-body').value = ''; $('c-internal').checked = false;
+        loadComments();
+    });
+
+    $('f-upload').addEventListener('click', async () => {
+        const files = Array.from($('f-input').files);
+        if (!files.length) { note($('f-err'), 'Choose at least one file.', 'err'); return; }
+        const fd = new FormData(); files.forEach(f => fd.append('files', f));
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/', { method: 'POST', body: fd });
+        if (!res.ok) { note($('f-err'), flatten(res.data), 'err'); return; }
+        $('f-err').style.display = 'none'; $('f-input').value = '';
+        loadFiles();
+    });
+
+    $('s-save').addEventListener('click', async () => {
+        const status = $('s-select').value;
+        const res = await Desk.api(ticketUrl, { method: 'PATCH', body: { status } });
+        if (!res.ok) { note($('s-msg'), flatten(res.data), 'err'); return; }
+        note($('s-msg'), 'Status updated.', 'ok');
+        $('t-status').textContent = STATUS[status]; $('t-status').className = 'pill p-' + status;
+    });
+
+    whenMe(loadTicket);
+</script>
+{% endblock %}
