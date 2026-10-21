@@ -5,6 +5,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db import transaction
 
 
 class ChangePasswordView(APIView):
@@ -47,12 +48,12 @@ class ChangePasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user.set_password(new_password)
-        user.save()
+        with transaction.atomic():
+         user.set_password(new_password)
+         user.save(update_fields=['password'])
 
-        # Old token ko hata ke naya token do (security ke liye)
-        Token.objects.filter(user=user).delete()
-        new_token = Token.objects.create(user=user)
+         Token.objects.filter(user=user).delete()
+         new_token = Token.objects.create(user=user)
 
         return Response(
             {

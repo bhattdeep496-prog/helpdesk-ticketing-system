@@ -9,6 +9,8 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db import transaction
+from rest_framework.authtoken.models import Token
 
 User = get_user_model()
 
@@ -94,9 +96,10 @@ class ResetPasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user.set_password(new_password)
-        user.save()
-        return Response(
-            {'message': 'Password reset successful. You can log in now.'},
-            status=status.HTTP_200_OK,
-        )
+        with transaction.atomic():
+         user.set_password(new_password)
+         user.save(update_fields=['password'])
+
+        Token.objects.filter(user=user).delete()
+
+        
