@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -39,7 +40,9 @@ class ForgotPasswordView(APIView):
                 subject='Helpdesk - Password Reset',
                 message=(
                     f'Hello {user.username},\n\n'
-                    f'Use these details to reset your password:\n'
+                    f'Open this link to choose a new password:\n'
+                    f'{settings.SITE_URL}/reset-password/?uid={uid}&token={token}\n\n'
+                    f'Or use these details with the API:\n'
                     f'uid: {uid}\n'
                     f'token: {token}\n\n'
                     f'If you did not request this, ignore this email.'
@@ -102,4 +105,7 @@ class ResetPasswordView(APIView):
 
         Token.objects.filter(user=user).delete()
 
-        
+        return Response(
+            {'message': 'Password has been reset. You can now log in.'},
+            status=status.HTTP_200_OK,
+        )

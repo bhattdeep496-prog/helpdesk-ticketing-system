@@ -1,0 +1,53 @@
+{% extends "ui/auth_base.html" %}
+{% block title %}Create account{% endblock %}
+
+{% block card %}
+<div class="eyebrow">Get started</div>
+<h2>Create account</h2>
+<p class="sub">Sign up as a customer to raise and track tickets.</p>
+
+<div id="error-box"></div>
+
+<form id="form" novalidate>
+    <div class="row g-2 mb-3">
+        <div class="col-6"><label for="first_name">First name</label><input id="first_name" class="form-control" autocomplete="given-name"></div>
+        <div class="col-6"><label for="last_name">Last name</label><input id="last_name" class="form-control" autocomplete="family-name"></div>
+    </div>
+    <div class="mb-3"><label for="username">Username</label><input id="username" class="form-control" autocomplete="username" required></div>
+    <div class="mb-3"><label for="email">Email</label><input id="email" type="email" class="form-control" autocomplete="email" required></div>
+    <div class="mb-3">
+        <label for="pw1">Password</label>
+        <div class="pw-wrap">
+            <input id="pw1" type="password" class="form-control" autocomplete="new-password" required>
+            <button type="button" class="pw-toggle" id="pw-toggle">Show</button>
+        </div>
+    </div>
+    <div class="mb-4"><label for="pw2">Confirm password</label><input id="pw2" type="password" class="form-control" autocomplete="new-password" required></div>
+    <button id="submit-btn" class="btn btn-violet w-100" type="submit">Create account</button>
+    <div class="text-center mt-3"><a href="/login/" class="alt-link">Already have an account? Sign in</a></div>
+</form>
+{% endblock %}
+
+{% block auth_js %}
+<script>
+    if (Desk.getToken()) { window.location = '/dashboard/'; }
+    pwToggle('pw-toggle', ['pw1', 'pw2']);
+
+    $('form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+            username: $('username').value.trim(), email: $('email').value.trim(),
+            first_name: $('first_name').value.trim(), last_name: $('last_name').value.trim(),
+            password: $('pw1').value, password2: $('pw2').value,
+        };
+        if (!body.username || !body.email || !body.password) { showError('Username, email and password are required.'); return; }
+        if (body.password !== body.password2) { showError('Passwords do not match.'); return; }
+        const btn = $('submit-btn');
+        btn.disabled = true; btn.textContent = 'Creating...';
+        const res = await Desk.api('/register/', { method: 'POST', body });
+        btn.disabled = false; btn.textContent = 'Create account';
+        if (res.ok && res.data && res.data.token) { Desk.setToken(res.data.token); window.location = '/dashboard/'; return; }
+        showError(flatten(res.data));
+    });
+</script>
+{% endblock %}

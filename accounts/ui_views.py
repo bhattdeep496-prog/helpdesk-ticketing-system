@@ -31,3 +31,19 @@ class TicketDetailPageView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['ticket_id'] = int(kwargs['pk'])
         return context
+
+
+def _page(template):
+    @method_decorator(ensure_csrf_cookie, name='dispatch')
+    class Page(TemplateView):
+        template_name = template
+    return Page
+
+
+ForgotPasswordPageView = _page('ui/forgot_password.html')
+ResetPasswordPageView = _page('ui/reset_password.html')
+RegisterPageView = _page('ui/register.html')
+ProfilePageView = _page('ui/profile.html')
+ManageUsersPageView = _page('ui/admin_users.html')
+ManageSetupPageView = _page('ui/admin_setup.html')
+ManageSettingsPageView = _page('ui/admin_settings.html')

@@ -1,0 +1,136 @@
+{% extends "ui/manage_base.html" %}
+{% block title %}Categories &amp; priorities{% endblock %}
+{% block nav_setup %}active{% endblock %}
+
+{% block manage_css %}
+<style>
+    .tabs-x { display: flex; gap: .4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tab-x { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: .4rem 1rem; font-weight: 600; font-size: .86rem; cursor: pointer; }
+    .tab-x.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Categories, priorities &amp; tags</h1>
+        <p class="page-sub">These options appear when people create and filter tickets.</p>
+    </div>
+    <button class="btn-accent" id="add-btn"><i class="bi bi-plus-lg"></i> <span id="add-label">Add category</span></button>
+</div>
+
+<div class="tabs-x" id="tabs">
+    <button class="tab-x on" data-tab="categories">Categories</button>
+    <button class="tab-x" data-tab="priorities">Priorities</button>
+    <button class="tab-x" data-tab="tags">Tags</button>
+</div>
+
+<div class="cardx">
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead id="head"></thead>
+            <tbody id="rows"><tr><td class="empty-x">Loading...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="overlay" id="modal">
+    <div class="modal-x">
+        <h3 id="m-title">Add</h3>
+        <div class="msg mt-2" id="m-msg"></div>
+        <form id="m-form" novalidate>
+            <label class="lbl" style="margin-top:.6rem">Name</label>
+            <input class="fx" id="m-name" maxlength="100">
+            <div id="prio-fields" style="display:none">
+                <label class="lbl">Level (higher = more urgent)</label>
+                <input class="fx" id="m-level" type="number" min="1" max="100" value="1">
+                <label class="d-flex align-items-center gap-2 mt-3" style="font-size:.9rem">
+                    <input type="checkbox" id="m-active" checked> Active (can be used on new tickets)
+                </label>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn-accent" id="m-save" type="submit">Save</button>
+                <button class="btn-ghost" type="button" id="m-cancel">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block manage_js %}
+<script>
+    const CFG = {
+        categories: { url: '/admin/categories/', label: 'category', head: ['Name', ''] },
+        priorities: { url: '/priorities/', label: 'priority', head: ['Name', 'Level', 'Status', ''] },
+        tags: { url: '/admin/tags/', label: 'tag', head: ['Name', ''] },
+    };
+    let tab = 'categories', items = [], editing = null;
+
+    async function load() {
+        const c = CFG[tab];
+        $('head').innerHTML = '<tr>' + c.head.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+        $('add-label').textContent = 'Add ' + c.label;
+        const res = await Desk.api(c.url);
+        const cols = c.head.length;
+        if (!res.ok) { $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">${esc(flatten(res.data))}</td></tr>`; return; }
+        items = listOf(res.data);
+        if (!items.length) { $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">Nothing here yet. Add your first ${c.label}.</td></tr>`; return; }
+        $('rows').innerHTML = items.map(it => {
+            const actions = `<td class="text-end text-nowrap">
+                <button class="btn-ghost btn-sm-x" data-edit="${it.id}">Edit</button>
+                <button class="btn-danger-x btn-sm-x" data-del="${it.id}">Delete</button></td>`;
+            if (tab === 'priorities') {
+                return `<tr><td><b>${esc(it.name)}</b></td><td>${it.level}</td>
+                  <td><span class="badge-x ${it.is_active ? 'ok' : 'off'}">${it.is_active ? 'Active' : 'Inactive'}</span></td>${actions}</tr>`;
+            }
+            return `<tr><td><b>${esc(it.name)}</b></td>${actions}</tr>`;
+        }).join('');
+    }
+
+    function openForm(it) {
+        editing = it; $('m-msg').style.display = 'none';
+        $('m-title').textContent = (it ? 'Edit ' : 'Add ') + CFG[tab].label;
+        $('m-name').value = it ? it.name : '';
+        $('prio-fields').style.display = tab === 'priorities' ? 'block' : 'none';
+        if (tab === 'priorities') { $('m-level').value = it ? it.level : 1; $('m-active').checked = it ? it.is_active : true; }
+        openModal('modal'); $('m-name').focus();
+    }
+
+    $('tabs').addEventListener('click', (e) => {
+        const b = e.target.closest('.tab-x'); if (!b) return;
+        document.querySelectorAll('.tab-x').forEach(x => x.classList.remove('on')); b.classList.add('on');
+        tab = b.dataset.tab; load();
+    });
+    $('add-btn').addEventListener('click', () => openForm(null));
+    $('m-cancel').addEventListener('click', () => closeModal('modal'));
+
+    $('rows').addEventListener('click', async (e) => {
+        const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]');
+        if (ed) openForm(items.find(i => i.id == ed.dataset.edit));
+        if (dl) {
+            const it = items.find(i => i.id == dl.dataset.del);
+            if (!confirm('Delete "' + it.name + '"?')) return;
+            const res = await Desk.api(CFG[tab].url + it.id + '/', { method: 'DELETE' });
+            if (res.ok || res.status === 204) { toast('Deleted'); load(); } else toast(flatten(res.data), true);
+        }
+    });
+
+    $('m-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = $('m-name').value.trim();
+        if (!name) { $('m-msg').textContent = 'Name is required.'; $('m-msg').style.display = 'block'; return; }
+        const body = { name };
+        if (tab === 'priorities') { body.level = Number($('m-level').value) || 1; body.is_active = $('m-active').checked; }
+        $('m-save').disabled = true;
+        const c = CFG[tab];
+        const res = editing
+            ? await Desk.api(c.url + editing.id + '/', { method: 'PATCH', body })
+            : await Desk.api(c.url, { method: 'POST', body });
+        $('m-save').disabled = false;
+        if (res.ok) { closeModal('modal'); toast('Saved'); load(); }
+        else { $('m-msg').textContent = flatten(res.data); $('m-msg').style.display = 'block'; }
+    });
+
+    requireAdmin(load);
+</script>
+{% endblock %}

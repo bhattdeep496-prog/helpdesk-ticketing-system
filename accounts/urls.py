@@ -60,7 +60,8 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
-    path('chage-password/', ChangePasswordView.as_view(), name='chage-password'),
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('chage-password/', ChangePasswordView.as_view(), name='chage-password'),  # old (typo) path, kept for compatibility
 
     # my tickets
     path('my-tickets/', MyTicketsView.as_view(), name='my-tickets'),

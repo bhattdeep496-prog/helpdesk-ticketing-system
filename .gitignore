@@ -1,8 +1,17 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 db.sqlite3
 *.sqlite3
 media/
 attachments/
+staticfiles/
 .env
+
+# generated exports / dumps
+tickets.csv
+resolved.csv
+support_tickets.csv
+tickets.pdf
+project_code.txt

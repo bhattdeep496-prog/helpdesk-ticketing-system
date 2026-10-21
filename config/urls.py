@@ -33,7 +33,16 @@ urlpatterns = [
     path('api/', include('tickets.urls')),
 ]
 
-# Development mein uploaded files (attachments) browser mein kholne ke liye
-if settings.DEBUG and getattr(settings, 'MEDIA_URL', ''):
+# Uploaded files (attachments): dev me hamesha, production me sirf SERVE_MEDIA=1 par.
+# (Bade production setup me S3 / nginx use karo.)
+import os
+from django.views.static import serve as _serve_media
+from django.urls import re_path
+
+if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+elif os.environ.get('SERVE_MEDIA', '1').lower() in ('1', 'true', 'yes'):
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', _serve_media, {'document_root': settings.MEDIA_ROOT}),
+    ]
 

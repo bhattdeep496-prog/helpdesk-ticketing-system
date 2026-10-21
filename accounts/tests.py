@@ -199,3 +199,90 @@ class PriorityAPITests(APITestCase):
         self.assertTrue(
             Priority.objects.filter(pk=self.priority.pk).exists()
         )
+
+
+
+class PasswordResetFlowTests(APITestCase):
+    """Forgot -> reset flow (API + email link) and change-password."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            'resetme', 'reset@example.com', 'OldPass12345', role='customer'
+        )
+
+    def test_forgot_password_sends_link_email(self):
+        from django.core import mail
+        r = self.client.post(reverse('forgot-password'), {'email': 'reset@example.com'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('/reset-password/?uid=', mail.outbox[0].body)
+
+    def test_forgot_password_unknown_email_same_response(self):
+        from django.core import mail
+        r = self.client.post(reverse('forgot-password'), {'email': 'nobody@example.com'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reset_password_returns_200_and_changes_password(self):
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        r = self.client.post(
+            reverse('reset-password'),
+            {'uid': uid, 'token': token, 'new_password': 'BrandNew-98765'},
+            format='json',
+        )
+        self.assertEqual(r.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('BrandNew-98765'))
+
+    def test_reset_password_bad_token(self):
+        from django.utils.encoding import force_bytes
+        from django.utils.http import urlsafe_base64_encode
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        r = self.client.post(
+            reverse('reset-password'),
+            {'uid': uid, 'token': 'bad-token', 'new_password': 'BrandNew-98765'},
+            format='json',
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_change_password_new_and_old_url(self):
+        token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        r = self.client.post(
+            reverse('change-password'),
+            {'old_password': 'OldPass12345', 'new_password': 'Another-Pass-5432'},
+            format='json',
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('token', r.data)
+        self.assertEqual(reverse('chage-password'), '/api/chage-password/')  # old path still exists
+
+
+class UIPageTests(APITestCase):
+    """Web UI pages render (no template errors) for every role-less visitor."""
+
+    def test_public_pages_render(self):
+        for name in ['ui-login', 'ui-register', 'ui-forgot-password', 'ui-reset-password']:
+            r = self.client.get(reverse(name))
+            self.assertEqual(r.status_code, 200, name)
+
+    def test_app_pages_render(self):
+        for name in ['ui-dashboard', 'ui-tickets', 'ui-ticket-new', 'ui-profile',
+                     'ui-manage-users', 'ui-manage-setup', 'ui-manage-settings']:
+            r = self.client.get(reverse(name))
+            self.assertEqual(r.status_code, 200, name)
+
+    def test_login_page_links_to_forgot_and_register(self):
+        html = self.client.get(reverse('ui-login')).content.decode()
+        self.assertIn('/forgot-password/', html)
+        self.assertIn('/register/', html)
+
+
+class SuperuserRoleTests(APITestCase):
+    def test_superuser_gets_admin_role(self):
+        u = User.objects.create_superuser('root', 'root@example.com', 'Root-Pass-12345')
+        self.assertEqual(u.role, 'admin')

@@ -1,0 +1,155 @@
+{% extends "ui/manage_base.html" %}
+{% block title %}Users{% endblock %}
+{% block nav_users %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Users</h1>
+        <p class="page-sub">Add people, change roles and deactivate accounts.</p>
+    </div>
+    <button class="btn-accent" id="new-btn"><i class="bi bi-person-plus"></i> New user</button>
+</div>
+
+<div class="cardx">
+    <div class="msg" id="msg"></div>
+    <div class="toolbar">
+        <input class="fx" id="f-search" placeholder="Search username or email">
+        <select class="fx" id="f-role">
+            <option value="">All roles</option>
+            <option value="customer">Customer</option>
+            <option value="support">Support staff</option>
+            <option value="admin">Admin</option>
+        </select>
+        <select class="fx" id="f-active">
+            <option value="">Active + inactive</option>
+            <option value="true">Active only</option>
+            <option value="false">Inactive only</option>
+        </select>
+    </div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+            <tbody id="rows"><tr><td colspan="6" class="empty-x">Loading...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="overlay" id="modal">
+    <div class="modal-x">
+        <h3 id="m-title">New user</h3>
+        <div class="msg mt-2" id="m-msg"></div>
+        <form id="m-form" novalidate>
+            <label class="lbl" style="margin-top:.6rem">Username</label>
+            <input class="fx" id="m-username" autocomplete="off">
+            <div class="row">
+                <div class="col-6"><label class="lbl">First name</label><input class="fx" id="m-first"></div>
+                <div class="col-6"><label class="lbl">Last name</label><input class="fx" id="m-last"></div>
+            </div>
+            <label class="lbl">Email</label>
+            <input class="fx" id="m-email" type="email" autocomplete="off">
+            <label class="lbl">Role</label>
+            <select class="fx" id="m-role">
+                <option value="customer">Customer</option>
+                <option value="support">Support staff</option>
+                <option value="admin">Admin</option>
+            </select>
+            <label class="lbl" id="m-pw-label">Password</label>
+            <input class="fx" id="m-password" type="password" autocomplete="new-password">
+            <label class="d-flex align-items-center gap-2 mt-3" id="m-active-wrap" style="font-size:.9rem">
+                <input type="checkbox" id="m-active" checked> Account is active
+            </label>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn-accent" id="m-save" type="submit">Save</button>
+                <button class="btn-ghost" type="button" id="m-cancel">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block manage_js %}
+<script>
+    let users = [], editing = null, timer;
+    const ROLE = { customer: 'Customer', support: 'Support staff', admin: 'Admin' };
+
+    async function load() {
+        const p = new URLSearchParams();
+        if ($('f-search').value.trim()) p.set('search', $('f-search').value.trim());
+        if ($('f-role').value) p.set('role', $('f-role').value);
+        if ($('f-active').value) p.set('is_active', $('f-active').value);
+        const res = await Desk.api('/admin/users/?' + p.toString());
+        if (!res.ok) { $('rows').innerHTML = '<tr><td colspan="6" class="empty-x">' + esc(flatten(res.data)) + '</td></tr>'; return; }
+        users = listOf(res.data);
+        if (!users.length) { $('rows').innerHTML = '<tr><td colspan="6" class="empty-x">No users match these filters.</td></tr>'; return; }
+        $('rows').innerHTML = users.map(u => {
+            const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+            return `<tr>
+              <td><b>${esc(u.username)}</b>${name ? '<div class="muted" style="font-size:.8rem">' + esc(name) + '</div>' : ''}</td>
+              <td>${esc(u.email || '—')}</td>
+              <td><span class="badge-x">${esc(ROLE[u.role] || u.role)}</span></td>
+              <td><span class="badge-x ${u.is_active ? 'ok' : 'off'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+              <td>${esc((u.date_joined || '').slice(0, 10))}</td>
+              <td class="text-end text-nowrap">
+                <button class="btn-ghost btn-sm-x" data-edit="${u.id}">Edit</button>
+                <button class="${u.is_active ? 'btn-danger-x' : 'btn-ghost'} btn-sm-x" data-toggle="${u.id}">${u.is_active ? 'Deactivate' : 'Activate'}</button>
+              </td></tr>`;
+        }).join('');
+    }
+
+    function openForm(u) {
+        editing = u;
+        $('m-msg').style.display = 'none';
+        $('m-title').textContent = u ? 'Edit user' : 'New user';
+        $('m-username').value = u ? u.username : ''; $('m-username').disabled = !!u;
+        $('m-first').value = u ? u.first_name : ''; $('m-last').value = u ? u.last_name : '';
+        $('m-email').value = u ? u.email : ''; $('m-role').value = u ? u.role : 'customer';
+        $('m-password').value = '';
+        $('m-pw-label').textContent = u ? 'New password (leave blank to keep)' : 'Password';
+        $('m-active').checked = u ? u.is_active : true;
+        $('m-active-wrap').style.display = u ? 'flex' : 'none';
+        openModal('modal');
+    }
+
+    $('new-btn').addEventListener('click', () => openForm(null));
+    $('m-cancel').addEventListener('click', () => closeModal('modal'));
+    ['f-role', 'f-active'].forEach(id => $(id).addEventListener('change', load));
+    $('f-search').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 350); });
+
+    $('rows').addEventListener('click', async (e) => {
+        const ed = e.target.closest('[data-edit]'), tg = e.target.closest('[data-toggle]');
+        if (ed) openForm(users.find(u => u.id == ed.dataset.edit));
+        if (tg) {
+            const u = users.find(x => x.id == tg.dataset.toggle);
+            if (u.is_active && !confirm('Deactivate ' + u.username + '? They will no longer be able to sign in.')) return;
+            const res = await Desk.api('/admin/users/' + u.id + '/', { method: 'PATCH', body: { is_active: !u.is_active } });
+            if (res.ok) { toast(u.username + (u.is_active ? ' deactivated' : ' activated')); load(); }
+            else toast(flatten(res.data), true);
+        }
+    });
+
+    $('m-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = {
+            email: $('m-email').value.trim(), first_name: $('m-first').value.trim(),
+            last_name: $('m-last').value.trim(), role: $('m-role').value,
+        };
+        if ($('m-password').value) body.password = $('m-password').value;
+        let res;
+        $('m-save').disabled = true;
+        if (editing) {
+            body.is_active = $('m-active').checked;
+            res = await Desk.api('/admin/users/' + editing.id + '/', { method: 'PATCH', body });
+        } else {
+            body.username = $('m-username').value.trim();
+            if (!body.username) { $('m-save').disabled = false; $('m-msg').textContent = 'Username is required.'; $('m-msg').style.display = 'block'; return; }
+            res = await Desk.api('/admin/users/', { method: 'POST', body });
+        }
+        $('m-save').disabled = false;
+        if (res.ok) { closeModal('modal'); toast(editing ? 'User updated' : 'User created'); load(); }
+        else { $('m-msg').textContent = flatten(res.data); $('m-msg').style.display = 'block'; }
+    });
+
+    requireAdmin(load);
+</script>
+{% endblock %}

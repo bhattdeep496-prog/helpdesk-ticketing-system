@@ -1,0 +1,261 @@
+{% extends "ui/base.html" %}
+{% block extra_css %}
+<style>
+    .login-wrap {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+    }
+
+    .hero {
+        padding: 2.5rem 4rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.6rem, 5vw, 4.4rem);
+        font-weight: 800;
+        line-height: 1.02;
+        margin: 0 0 1.25rem;
+    }
+
+    .hero h1 span {
+        color: var(--sage);
+    }
+
+    .hero p.lead {
+        color: #55635b;
+        max-width: 30rem;
+        font-size: 1.05rem;
+    }
+
+    .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+        margin-top: 1.75rem;
+    }
+
+    .chip {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: .45rem .9rem;
+        font-size: .85rem;
+        font-weight: 500;
+    }
+
+    .chip i {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--lime);
+        margin-right: .45rem;
+        box-shadow: 0 0 0 3px rgba(199, 242, 107, .35);
+    }
+
+    .hero small {
+        color: var(--sage);
+    }
+
+    .form-side {
+        background: var(--panel);
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .form-side::before {
+        content: "";
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(91, 61, 245, .35), transparent 70%);
+        top: -120px;
+        right: -120px;
+    }
+
+    .login-card {
+        position: relative;
+        width: 100%;
+        max-width: 410px;
+        background: var(--panel-2);
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 20px;
+        padding: 2.2rem;
+        color: #fff;
+    }
+
+    .login-card h2 {
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin: .35rem 0 .35rem;
+    }
+
+    .login-card .sub {
+        color: #93a39a;
+        font-size: .92rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .login-card label {
+        font-size: .8rem;
+        color: #b6c4bc;
+        font-weight: 500;
+        margin-bottom: .35rem;
+    }
+
+    .login-card .form-control {
+        background: #0e1815;
+        border: 1px solid rgba(255, 255, 255, .12);
+        color: #fff;
+        padding: .8rem 1rem;
+        border-radius: 12px;
+    }
+
+    .login-card .form-control:focus {
+        border-color: var(--lime);
+        box-shadow: 0 0 0 3px rgba(199, 242, 107, .18);
+        background: #0e1815;
+        color: #fff;
+    }
+
+    .pw-wrap {
+        position: relative;
+    }
+
+    .pw-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: 0;
+        color: #93a39a;
+        font-size: .8rem;
+        font-weight: 600;
+    }
+
+    #error-box {
+        display: none;
+        background: rgba(229, 72, 77, .12);
+        color: #ff9a9d;
+        border: 1px solid rgba(229, 72, 77, .35);
+        border-radius: 12px;
+        padding: .7rem .9rem;
+        font-size: .88rem;
+        margin-bottom: 1rem;
+    }
+
+    .forgot {
+        color: #93a39a;
+        font-size: .85rem;
+        text-decoration: none;
+    }
+
+    .forgot:hover {
+        color: var(--lime);
+    }
+
+    @media (max-width: 900px) {
+        .login-wrap {
+            grid-template-columns: 1fr;
+        }
+
+        .hero {
+            padding: 1.75rem 1.5rem 2.5rem;
+        }
+
+        .form-side {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
+<style>
+    .login-card .alert-ok {
+        display: none;
+        background: rgba(199, 242, 107, .12);
+        color: var(--lime);
+        border: 1px solid rgba(199, 242, 107, .35);
+        border-radius: 12px;
+        padding: .7rem .9rem;
+        font-size: .88rem;
+        margin-bottom: 1rem;
+    }
+
+    .login-card .alt-link {
+        color: #93a39a;
+        font-size: .85rem;
+        text-decoration: none;
+    }
+
+    .login-card .alt-link:hover {
+        color: var(--lime);
+    }
+
+    .login-card .hint {
+        color: #7f8f86;
+        font-size: .75rem;
+        margin-top: .3rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="login-wrap">
+    <section class="hero">
+        <a class="brand" href="/"><span class="brand-mark">D</span> Deskly</a>
+
+        <div class="fade-up my-5">
+            <div class="eyebrow mb-3">● Helpdesk &amp; ticketing</div>
+            <h1>Support, <br><span>without the chaos.</span></h1>
+            <p class="lead">Raise tickets, track every update and resolve faster. One place for customers, support staff
+                and admins.</p>
+            <div class="chips">
+                <span class="chip"><i></i>Live ticket status</span>
+                <span class="chip"><i></i>Role-based access</span>
+                <span class="chip"><i></i>Email updates</span>
+                <span class="chip"><i></i>CSV &amp; PDF reports</span>
+            </div>
+        </div>
+
+        <small>© Deskly · Built with Django &amp; DRF</small>
+    </section>
+
+    <section class="form-side">
+        <div class="login-card fade-up">
+            {% block card %}{% endblock %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const $ = (id) => document.getElementById(id);
+    function showError(msg) { const b = $('error-box'); b.textContent = msg; b.style.display = 'block'; $('ok-box').style.display = 'none'; }
+    function showOk(msg) { const b = $('ok-box'); b.textContent = msg; b.style.display = 'block'; $('error-box').style.display = 'none'; }
+    function flatten(d) {
+        if (!d) return 'Something went wrong. Please try again.';
+        if (typeof d === 'string') return d;
+        if (d.error) return [].concat(d.error).join(' ');
+        if (d.detail) return d.detail;
+        return Object.entries(d).map(([k, v]) => (k === 'non_field_errors' ? '' : k + ': ') + [].concat(v).join(' ')).join(' | ');
+    }
+    function pwToggle(btnId, inputIds) {
+        $(btnId).addEventListener('click', (e) => {
+            const show = $(inputIds[0]).type === 'password';
+            inputIds.forEach(i => $(i).type = show ? 'text' : 'password');
+            e.target.textContent = show ? 'Hide' : 'Show';
+        });
+    }
+</script>
+{% block auth_js %}{% endblock %}
+{% endblock %}

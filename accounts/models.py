@@ -26,5 +26,11 @@ class User(AbstractUser):
     def is_helpdesk_admin(self):
         return self.role == self.Role.ADMIN or self.is_superuser
 
+    def save(self, *args, **kwargs):
+        # createsuperuser se bana user UI me bhi admin dikhe
+        if self.is_superuser and self.role == self.Role.CUSTOMER:
+            self.role = self.Role.ADMIN
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"

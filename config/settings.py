@@ -10,22 +10,47 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+try:  # optional: .env file support (python-dotenv)
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover
+    load_dotenv = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+if load_dotenv:
+    load_dotenv(BASE_DIR / '.env')
+
+
+def env_bool(name, default=False):
+    return os.environ.get(name, str(default)).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(name, default=''):
+    return [v.strip() for v in os.environ.get(name, default).split(',') if v.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-gg95#(^@lwx2a*hd0cu4me0cira89+j!y)8dlb%!0l1a2(iijt'
+# Production me DJANGO_SECRET_KEY environment variable zaroor set karo.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-dev-only-change-me',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DJANGO_DEBUG', True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver')
+CSRF_TRUSTED_ORIGINS = env_list('DJANGO_CSRF_TRUSTED_ORIGINS')
+
+if not DEBUG and SECRET_KEY.startswith('django-insecure'):
+    raise RuntimeError('Set DJANGO_SECRET_KEY when DJANGO_DEBUG is off.')
 
 
 # Application definition
@@ -54,6 +79,7 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -85,12 +111,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+# Default: SQLite (development). Production: DATABASE_URL=postgres://user:pass@host:5432/dbname
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+if os.environ.get('DATABASE_URL'):
+    import dj_database_url
+    DATABASES['default'] = dj_database_url.parse(
+        os.environ['DATABASE_URL'], conn_max_age=600
+    )
 
 
 # Password validation
@@ -128,6 +160,20 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
+
+# Uploaded attachments
+MEDIA_URL = '/media/'
+MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT', BASE_DIR / 'media'))
+
+# Public URL of the site (used in password-reset emails)
+SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -135,11 +181,17 @@ AUTH_USER_MODEL = "accounts.User"
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+if os.environ.get('EMAIL_HOST'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ['EMAIL_HOST']
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+else:
+    # Development: emails terminal me print hote hain
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Deskly Helpdesk <no-reply@deskly.local>')
 
 ALLOW_PUBLIC_REGISTRATION = True
 
@@ -158,3 +210,10 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
     "SWAGGER_UI_SETTINGS": {"persistAuthorization": True},
 }
+
+# Production security (sirf jab DEBUG off ho)
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = env_bool('DJANGO_SSL_REDIRECT', True)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

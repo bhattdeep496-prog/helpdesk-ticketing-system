@@ -315,11 +315,21 @@
             <a class="nav-link-x {% block nav_new %}{% endblock %}" href="/tickets/new/"><i
                     class="bi bi-plus-circle"></i> New ticket</a>
         </div>
+        <div class="nav-group" id="admin-nav" style="display:none">
+            <div class="eyebrow mb-2">Administration</div>
+            <a class="nav-link-x {% block nav_users %}{% endblock %}" href="/manage/users/"><i class="bi bi-people"></i> Users</a>
+            <a class="nav-link-x {% block nav_setup %}{% endblock %}" href="/manage/setup/"><i class="bi bi-sliders"></i> Categories &amp; priorities</a>
+            <a class="nav-link-x {% block nav_settings %}{% endblock %}" href="/manage/settings/"><i class="bi bi-gear"></i> System settings</a>
+        </div>
         <div class="nav-group" id="staff-nav" style="display:none">
             <div class="eyebrow mb-2">Manage</div>
             <a class="nav-link-x" href="/api/reports/tickets/csv/" target="_blank"><i class="bi bi-filetype-csv"></i>
                 Export CSV</a>
             <a class="nav-link-x" href="/api/docs/" target="_blank"><i class="bi bi-braces"></i> API docs</a>
+        </div>
+
+        <div class="nav-group">
+            <a class="nav-link-x {% block nav_profile %}{% endblock %}" href="/profile/"><i class="bi bi-person-circle"></i> My profile</a>
         </div>
 
         <div class="side-user">
@@ -406,6 +416,9 @@
             document.getElementById('u-avatar').textContent = Me.name.slice(0, 2).toUpperCase();
             if (Me.role === 'admin' || Me.role === 'support') {
                 document.getElementById('staff-nav').style.display = 'block';
+            }
+            if (Me.role === 'admin') {
+                document.getElementById('admin-nav').style.display = 'block';
             }
             window.dispatchEvent(new Event('medata'));
         }

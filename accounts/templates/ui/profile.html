@@ -1,0 +1,88 @@
+{% extends "ui/manage_base.html" %}
+{% block title %}My profile{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<h1 class="page-title">My profile</h1>
+<p class="page-sub">Update your details and change your password.</p>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="cardx">
+            <h3>Details</h3>
+            <div class="msg" id="p-msg"></div>
+            <form id="p-form" novalidate>
+                <div class="d-flex gap-3 mb-1" style="font-size:.85rem">
+                    <span class="badge-x" id="p-role">role</span><span class="muted" id="p-stats"></span>
+                </div>
+                <label class="lbl">Username</label>
+                <input class="fx" id="p-username" disabled>
+                <div class="row">
+                    <div class="col-6"><label class="lbl">First name</label><input class="fx" id="p-first"></div>
+                    <div class="col-6"><label class="lbl">Last name</label><input class="fx" id="p-last"></div>
+                </div>
+                <label class="lbl">Email</label>
+                <input class="fx" id="p-email" type="email">
+                <button class="btn-accent mt-4" id="p-save" type="submit">Save changes</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="cardx">
+            <h3>Change password</h3>
+            <div class="msg" id="c-msg"></div>
+            <form id="c-form" novalidate>
+                <label class="lbl" style="margin-top:0">Current password</label>
+                <input class="fx" id="c-old" type="password" autocomplete="current-password">
+                <label class="lbl">New password</label>
+                <input class="fx" id="c-new" type="password" autocomplete="new-password">
+                <label class="lbl">Confirm new password</label>
+                <input class="fx" id="c-new2" type="password" autocomplete="new-password">
+                <button class="btn-accent mt-4" id="c-save" type="submit">Update password</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block manage_js %}
+<script>
+    function say(id, text, ok) { const b = $(id); b.textContent = text; b.className = 'msg' + (ok ? ' ok' : ''); b.style.display = 'block'; }
+
+    async function load() {
+        const res = await Desk.api('/user-profile/');
+        if (!res.ok) { say('p-msg', flatten(res.data)); return; }
+        const u = res.data;
+        $('p-username').value = u.username; $('p-first').value = u.first_name || '';
+        $('p-last').value = u.last_name || ''; $('p-email').value = u.email || '';
+        $('p-role').textContent = (u.role || '').replace('_', ' ');
+        $('p-stats').textContent = (u.total_tickets ?? 0) + ' tickets created · joined ' + (u.date_joined || '').slice(0, 10);
+    }
+
+    $('p-form').addEventListener('submit', async (e) => {
+        e.preventDefault(); $('p-msg').style.display = 'none';
+        $('p-save').disabled = true;
+        const res = await Desk.api('/user-profile/', { method: 'PATCH', body: {
+            first_name: $('p-first').value.trim(), last_name: $('p-last').value.trim(), email: $('p-email').value.trim() } });
+        $('p-save').disabled = false;
+        if (res.ok) { toast('Profile updated'); load(); } else say('p-msg', flatten(res.data));
+    });
+
+    $('c-form').addEventListener('submit', async (e) => {
+        e.preventDefault(); $('c-msg').style.display = 'none';
+        const old_password = $('c-old').value, new_password = $('c-new').value;
+        if (!old_password || !new_password) { say('c-msg', 'Please fill in all password fields.'); return; }
+        if (new_password !== $('c-new2').value) { say('c-msg', 'New passwords do not match.'); return; }
+        $('c-save').disabled = true;
+        const res = await Desk.api('/change-password/', { method: 'POST', body: { old_password, new_password } });
+        $('c-save').disabled = false;
+        if (res.ok) {
+            // server purani token delete karke nayi deta hai - warna logout ho jaate
+            if (res.data && res.data.token) Desk.setToken(res.data.token);
+            $('c-form').reset(); say('c-msg', 'Password changed successfully.', true);
+        } else say('c-msg', flatten(res.data));
+    });
+
+    load();
+</script>
+{% endblock %}

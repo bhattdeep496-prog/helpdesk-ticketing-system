@@ -1,0 +1,68 @@
+{% extends "ui/manage_base.html" %}
+{% block title %}System settings{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block content %}
+<h1 class="page-title">System settings</h1>
+<p class="page-sub">Registration, file uploads and email notifications.</p>
+
+<div class="cardx form-card">
+    <div class="msg" id="msg"></div>
+    <form id="form" novalidate>
+        <div class="switch-row">
+            <div><b>Allow public registration</b><small>Anyone can sign up as a customer. Turn off to create accounts only from the Users page.</small></div>
+            <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="s-reg" style="width:2.6em;height:1.4em"></div>
+        </div>
+        <div class="switch-row">
+            <div><b>Email notifications</b><small>Emails for new tickets, status changes and assignments.</small></div>
+            <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="s-notify" style="width:2.6em;height:1.4em"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6"><label class="lbl">Max upload size (MB)</label><input class="fx" id="s-size" type="number" min="1" max="50"></div>
+            <div class="col-md-6"><label class="lbl">Max files per upload</label><input class="fx" id="s-files" type="number" min="1" max="20"></div>
+        </div>
+        <label class="lbl">Allowed file types</label>
+        <input class="fx" id="s-types" placeholder="jpg,png,pdf">
+        <div class="muted mt-1" style="font-size:.8rem">Comma separated extensions, for example: jpg,png,gif,pdf</div>
+
+        <div class="d-flex align-items-center gap-3 mt-4">
+            <button class="btn-accent" id="save" type="submit"><i class="bi bi-check2"></i> Save settings</button>
+            <span class="muted" id="updated" style="font-size:.8rem"></span>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block manage_js %}
+<script>
+    function fill(s) {
+        $('s-reg').checked = !!s.allow_public_registration;
+        $('s-notify').checked = !!s.notifications_enabled;
+        $('s-size').value = s.max_upload_size_mb;
+        $('s-files').value = s.max_files_per_request;
+        $('s-types').value = s.allowed_file_types;
+        $('updated').textContent = s.updated_at ? 'Last saved ' + new Date(s.updated_at).toLocaleString() : '';
+    }
+    async function load() {
+        const res = await Desk.api('/admin/settings/');
+        if (res.ok) fill(res.data); else { $('msg').textContent = flatten(res.data); $('msg').className = 'msg'; $('msg').style.display = 'block'; }
+    }
+    $('form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('msg').style.display = 'none';
+        $('save').disabled = true;
+        const res = await Desk.api('/admin/settings/', { method: 'PATCH', body: {
+            allow_public_registration: $('s-reg').checked,
+            notifications_enabled: $('s-notify').checked,
+            max_upload_size_mb: Number($('s-size').value),
+            max_files_per_request: Number($('s-files').value),
+            allowed_file_types: $('s-types').value,
+        } });
+        $('save').disabled = false;
+        if (res.ok) { fill(res.data); toast('Settings saved'); }
+        else { $('msg').textContent = flatten(res.data); $('msg').className = 'msg'; $('msg').style.display = 'block'; }
+    });
+    requireAdmin(load);
+</script>
+{% endblock %}
