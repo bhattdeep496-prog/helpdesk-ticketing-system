@@ -94,8 +94,8 @@ urlpatterns = [
     # 3.3 Comments
     path("tickets/<int:pk>/comments/", TicketCommentView.as_view(), name="ticket-comments"),
 
-    # 3.4 Priorities (Categories ke endpoints /api/admin/categories/ pe pehle se hain)
-    path("priorities/", PriorityListCreateView.as_view(), name="priorities"),
+    # 3.4 Priorities
+    path("priorities/", PriorityListCreateView.as_view(), name="priority-list-create"),
     path("priorities/<int:pk>/", PriorityDetailView.as_view(), name="priority-detail"),
 
     # 3.5 Dashboards
