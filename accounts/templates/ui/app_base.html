@@ -116,6 +116,29 @@
         gap: .75rem;
     }
 
+    .side-profile {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .4rem .5rem;
+        margin: -.4rem -.5rem;
+        border-radius: 12px;
+        color: var(--text);
+        text-decoration: none;
+        transition: background .15s;
+    }
+
+    .side-profile:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+
+    .side-profile.active {
+        background: var(--accent-soft);
+    }
+
     .avatar {
         width: 38px;
         height: 38px;
@@ -323,21 +346,21 @@
         </div>
         <div class="nav-group" id="staff-nav" style="display:none">
             <div class="eyebrow mb-2">Manage</div>
-            <a class="nav-link-x" href="/api/reports/tickets/csv/" target="_blank"><i class="bi bi-filetype-csv"></i>
+            <a class="nav-link-x" href="#" data-export="/api/reports/tickets/csv/" data-name="tickets.csv"><i class="bi bi-filetype-csv"></i>
                 Export CSV</a>
+            <a class="nav-link-x" href="#" data-export="/api/reports/tickets/pdf/" data-name="tickets.pdf"><i class="bi bi-filetype-pdf"></i>
+                Export PDF</a>
             <a class="nav-link-x" href="/api/docs/" target="_blank"><i class="bi bi-braces"></i> API docs</a>
         </div>
 
-        <div class="nav-group">
-            <a class="nav-link-x {% block nav_profile %}{% endblock %}" href="/profile/"><i class="bi bi-person-circle"></i> My profile</a>
-        </div>
-
         <div class="side-user">
-            <div class="avatar" id="u-avatar">U</div>
-            <div class="flex-grow-1" style="min-width:0">
-                <div class="name text-truncate" id="u-name">User</div>
-                <div class="role" id="u-role">&nbsp;</div>
-            </div>
+            <a class="side-profile {% block nav_profile %}{% endblock %}" href="/profile/" title="My profile">
+                <div class="avatar" id="u-avatar">U</div>
+                <div class="flex-grow-1" style="min-width:0">
+                    <div class="name text-truncate" id="u-name">User</div>
+                    <div class="role" id="u-role">&nbsp;</div>
+                </div>
+            </a>
             <button class="icon-btn" id="logout-btn" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
         </div>
     </aside>
@@ -395,6 +418,28 @@
         e.preventDefault();
         const q = document.getElementById('search-input').value.trim();
         window.location = '/tickets/' + (q ? '?search=' + encodeURIComponent(q) : '');
+    });
+
+    // Export (CSV/PDF): normal link token nahi bhejta, isliye fetch se token ke saath download karte hain
+    async function downloadExport(url, fallbackName) {
+        const headers = {};
+        const token = Desk.getToken();
+        if (token) headers['Authorization'] = AUTH_PREFIX + token;
+        let res;
+        try { res = await fetch(url, { headers }); }
+        catch (e) { alert('Cannot reach the server.'); return; }
+        if (res.status === 401) { Desk.logout(); return; }
+        if (!res.ok) { alert('Export failed (' + res.status + ').'); return; }
+        const blob = await res.blob();
+        const m = (res.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = m ? m[1] : fallbackName;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    document.querySelectorAll('[data-export]').forEach((el) => {
+        el.addEventListener('click', (e) => { e.preventDefault(); downloadExport(el.dataset.export, el.dataset.name); });
     });
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
