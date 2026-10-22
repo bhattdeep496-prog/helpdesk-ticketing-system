@@ -1,5 +1,6 @@
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -223,6 +224,21 @@ class PasswordResetFlowTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_forgot_password_mail_failure_does_not_leak_or_crash(self):
+        """SMTP down => still 200 (a 500 would reveal that the email is registered)."""
+        from unittest import mock
+        with mock.patch('accounts.views.forgot_reset_view.send_mail', side_effect=Exception('smtp down')):
+            r = self.client.post(reverse('forgot-password'), {'email': 'reset@example.com'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('debug', r.data)  # tests run with DEBUG=False
+
+    def test_forgot_password_debug_hint_only_in_debug(self):
+        from django.test import override_settings
+        with override_settings(DEBUG=True):
+            r = self.client.post(reverse('forgot-password'), {'email': 'nobody@example.com'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('No active user', r.data['debug'])
+
     def test_reset_password_returns_200_and_changes_password(self):
         from django.contrib.auth.tokens import default_token_generator
         from django.utils.encoding import force_bytes
@@ -286,3 +302,64 @@ class SuperuserRoleTests(APITestCase):
     def test_superuser_gets_admin_role(self):
         u = User.objects.create_superuser('root', 'root@example.com', 'Root-Pass-12345')
         self.assertEqual(u.role, 'admin')
+
+
+
+class LoginLockoutTests(APITestCase):
+    """5 galat attempts free, 6th par lock (1 min), phir 2 min, 5 min ..."""
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.user = User.objects.create_user('lockme', 'l@example.com', 'RightPass-12345')
+        self.url = reverse('login')
+
+    def wrong(self, username='lockme'):
+        return self.client.post(self.url, {'username': username, 'password': 'nope'}, format='json')
+
+    def test_five_wrong_attempts_then_lock(self):
+        for expected_left in (4, 3, 2, 1, 0):
+            r = self.wrong()
+            self.assertEqual(r.status_code, 401)
+            self.assertEqual(r.data['attempts_left'], expected_left)
+        r = self.wrong()                      # 6th wrong attempt
+        self.assertEqual(r.status_code, 429)
+        self.assertEqual(r.data['retry_after'], 60)
+        self.assertEqual(r['Retry-After'], '60')
+
+    def test_correct_password_also_rejected_while_locked(self):
+        for _ in range(6):
+            self.wrong()
+        r = self.client.post(self.url, {'username': 'lockme', 'password': 'RightPass-12345'}, format='json')
+        self.assertEqual(r.status_code, 429)
+
+    def test_lock_time_increases_after_it_expires(self):
+        import time
+        from unittest import mock
+        for _ in range(6):
+            self.wrong()                      # 1 minute lock
+        later = time.time() + 61              # 1 min baad lock khatam
+        with mock.patch('time.time', return_value=later):
+            r = self.wrong()                  # phir galat -> ab 2 minute
+        self.assertEqual(r.status_code, 429)
+        self.assertEqual(r.data['retry_after'], 120)
+
+    def test_success_resets_counter(self):
+        for _ in range(3):
+            self.wrong()
+        ok = self.client.post(self.url, {'username': 'lockme', 'password': 'RightPass-12345'}, format='json')
+        self.assertEqual(ok.status_code, 200)
+        for _ in range(5):                    # fir se 5 free attempts
+            self.assertEqual(self.wrong().status_code, 401)
+
+    def test_other_username_not_affected(self):
+        User.objects.create_user('other', 'o@example.com', 'Other-Pass-12345')
+        for _ in range(6):
+            self.wrong()
+        r = self.client.post(self.url, {'username': 'other', 'password': 'Other-Pass-12345'}, format='json')
+        self.assertEqual(r.status_code, 200)
+
+    def test_unknown_username_is_limited_too_and_case_insensitive(self):
+        for _ in range(5):
+            self.assertEqual(self.wrong('ghost').status_code, 401)
+        self.assertEqual(self.wrong('GHOST').status_code, 429)

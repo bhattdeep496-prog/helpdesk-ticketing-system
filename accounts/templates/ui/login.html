@@ -249,8 +249,31 @@
 
     function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
 
+    // ---- Lockout timer (server 429 deta hai + retry_after seconds) ----
+    let lockTimer = null;
+    function startLock(seconds) {
+        clearInterval(lockTimer);
+        let left = Math.max(1, Math.ceil(seconds));
+        btn.disabled = true;
+        const tick = () => {
+            if (left <= 0) {
+                clearInterval(lockTimer); lockTimer = null;
+                btn.disabled = false; btn.textContent = 'Sign in';
+                errorBox.style.display = 'none';
+                return;
+            }
+            const t = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+            showError('Too many failed attempts. Please try again in ' + t + '.');
+            btn.textContent = 'Locked \u00b7 ' + t;
+            left--;
+        };
+        tick();
+        lockTimer = setInterval(tick, 1000);
+    }
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (lockTimer) return;                       // timer chal raha ho to submit nahi
         errorBox.style.display = 'none';
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
@@ -265,10 +288,22 @@
             if (token) { Desk.setToken(token); window.location = '/dashboard/'; return; }
         }
         const d = res.data || {};
-        if (res.status === 401) {
-            showError('Invalid username or password.');
-            document.getElementById('password').value = '';
-            document.getElementById('password').focus();
+        const pw = document.getElementById('password');
+
+        if (res.status === 429) {                    // bahut zyada galat attempts: timer
+            pw.value = '';
+            startLock(d.retry_after || 60);
+            return;
+        }
+        if (res.status === 401) {                    // galat username/password
+            let msg = 'Invalid username or password.';
+            if (typeof d.attempts_left === 'number') {
+                msg += d.attempts_left > 0
+                    ? ' ' + d.attempts_left + ' attempt' + (d.attempts_left === 1 ? '' : 's') + ' left.'
+                    : ' One more wrong attempt will lock sign-in for 1 minute.';
+            }
+            showError(msg);
+            pw.value = ''; pw.focus();
             return;
         }
         showError(d.detail || d.error || d.non_field_errors?.[0] || 'Login failed. Check your details and try again.');

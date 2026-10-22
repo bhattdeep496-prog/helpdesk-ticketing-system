@@ -6,6 +6,7 @@ Django + Django REST Framework helpdesk. Customers raise tickets, support staff 
 
 - **Roles:** Admin, Support Staff, Customer, with role-based permissions
 - **Auth:** register, login/logout, token auth for the API, forgot/reset password by email, change password
+- **Login protection:** 5 wrong passwords are allowed; from the 6th wrong attempt sign-in is locked for 1 min, then 2, 5, 10 and 15 min (enforced on the server, shown as a countdown on the login page)
 - **Tickets:** lifecycle New → In Progress → Resolved → Closed, manual and auto assignment, attachments, tags, comments (with internal notes), history
 - **Dashboards:** separate for admin, support and customer. Admin sees tickets by status/priority/category and staff performance (closed per staff); support gets quick filters
 - **Search & filters:** by ID, title, keyword, status, priority, category, tag, date range
