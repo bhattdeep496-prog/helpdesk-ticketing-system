@@ -208,6 +208,7 @@
     </section>
 
     <section class="form-side">
+        <div class="glow" id="glow"></div>
         <div class="login-card fade-up">
             <div class="eyebrow">Welcome back</div>
             <h2>Sign in</h2>
@@ -313,5 +314,27 @@
         }
         showError(d.detail || d.error || d.non_field_errors?.[0] || 'Login failed. Check your details and try again.');
     });
+    // Glow mouse ke peeche smoothly chalta hai
+    (function () {
+        const side = document.querySelector('.form-side');
+        const glow = document.getElementById('glow');
+        if (!side || !glow) return;
+        const half = glow.offsetWidth / 2;
+        let x = side.clientWidth - 120, y = 90, tx = x, ty = y;
+        glow.style.transform = `translate(${x - half}px, ${y - half}px)`;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        window.addEventListener('mousemove', (e) => {
+            const r = side.getBoundingClientRect();
+            tx = e.clientX - r.left;
+            ty = e.clientY - r.top;
+        });
+        (function loop() {
+            x += (tx - x) * 0.12;
+            y += (ty - y) * 0.12;
+            glow.style.transform = `translate(${x - half}px, ${y - half}px)`;
+            requestAnimationFrame(loop);
+        })();
+    })();
 </script>
 {% endblock %}
