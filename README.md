@@ -7,10 +7,10 @@ Django + Django REST Framework helpdesk. Customers raise tickets, support staff 
 - **Roles:** Admin, Support Staff, Customer, with role-based permissions
 - **Auth:** register, login/logout, token auth for the API, forgot/reset password by email, change password
 - **Tickets:** lifecycle New → In Progress → Resolved → Closed, manual and auto assignment, attachments, tags, comments (with internal notes), history
-- **Dashboards:** separate for admin, support and customer
+- **Dashboards:** separate for admin, support and customer. Admin sees tickets by status/priority/category and staff performance (closed per staff); support gets quick filters
 - **Search & filters:** by ID, title, keyword, status, priority, category, tag, date range
 - **Reports:** CSV and PDF export, summary report
-- **Admin UI:** users, categories, priorities, tags, system settings (uploads, registration, notifications)
+- **Admin UI:** users, categories, priorities, tags, system settings (uploads, registration, notifications), email server status with a "send test email" button
 - **API docs:** Swagger at `/api/docs/`, ReDoc at `/api/redoc/`
 
 ## Local setup

@@ -189,3 +189,35 @@ class WebUITests(BaseAPITest):
         client = APIClient()
         for url in ('/', '/login/', '/dashboard/', '/tickets/', '/tickets/new/', '/tickets/1/'):
             self.assertEqual(client.get(url).status_code, 200, url)
+
+
+class EmailStatusAndDashboardExtrasTests(BaseAPITest):
+    """Email status/test API (3.10) and dashboard data used by the new dashboard cards (3.5)."""
+
+    def test_email_status_admin_only_and_no_password(self):
+        r = self.client_for(self.customer).get('/api/admin/email-status/')
+        self.assertEqual(r.status_code, 403)
+        r = self.client_for(self.admin).get('/api/admin/email-status/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(r.json()['mode'], ('smtp', 'console'))
+        self.assertFalse(any('password' in k.lower() for k in r.json()))
+
+    def test_email_test_sends_mail_to_admin(self):
+        from django.core import mail
+        self.admin.email = 'boss@example.com'
+        self.admin.save()
+        r = self.client_for(self.admin).post('/api/admin/email-test/', {}, format='json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(mail.outbox[-1].to, ['boss@example.com'])
+
+    def test_email_test_needs_admin_email(self):
+        self.admin.email = ''
+        self.admin.save()
+        r = self.client_for(self.admin).post('/api/admin/email-test/', {}, format='json')
+        self.assertEqual(r.status_code, 400)
+
+    def test_admin_dashboard_has_category_and_staff_performance(self):
+        r = self.client_for(self.admin).get('/api/dashboard/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('by_category', r.json())
+        self.assertIn('staff_performance', r.json())

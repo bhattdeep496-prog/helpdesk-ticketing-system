@@ -1,7 +1,10 @@
 """Admin settings API (spec 3.10): sirf admin padh aur badal sakta hai."""
+from django.conf import settings as dj_settings
+from django.core.mail import send_mail
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -54,3 +57,55 @@ class SystemSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class EmailStatusView(APIView):
+    """
+    GET /api/admin/email-status/  (Admin only)
+    Email server ki current settings dikhata hai (password kabhi nahi).
+    Settings environment variables se aati hain (EMAIL_HOST, EMAIL_PORT ...),
+    isliye yahan sirf padh sakte hain.
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @extend_schema(tags=['Admin settings'])
+    def get(self, request):
+        backend = getattr(dj_settings, 'EMAIL_BACKEND', '')
+        is_smtp = backend.endswith('smtp.EmailBackend')
+        return Response({
+            'mode': 'smtp' if is_smtp else 'console',
+            'backend': backend,
+            'host': getattr(dj_settings, 'EMAIL_HOST', '') if is_smtp else '',
+            'port': getattr(dj_settings, 'EMAIL_PORT', None) if is_smtp else None,
+            'use_tls': getattr(dj_settings, 'EMAIL_USE_TLS', False) if is_smtp else False,
+            'username': getattr(dj_settings, 'EMAIL_HOST_USER', '') if is_smtp else '',
+            'from_email': getattr(dj_settings, 'DEFAULT_FROM_EMAIL', ''),
+        })
+
+
+class EmailTestView(APIView):
+    """POST /api/admin/email-test/  (Admin only): apne email par test mail bhejta hai."""
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    @extend_schema(request=None, tags=['Admin settings'])
+    def post(self, request):
+        to = request.user.email
+        if not to:
+            return Response(
+                {'error': 'Pehle apni profile me email address add karo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            send_mail(
+                'Deskly test email',
+                'Congratulations! Your email settings are working.',
+                None,  # DEFAULT_FROM_EMAIL
+                [to],
+                fail_silently=False,
+            )
+        except Exception as exc:  # SMTP errors: wrong host/password etc.
+            return Response(
+                {'error': f'Email send failed: {exc}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response({'message': f'Test email sent to {to}.'})

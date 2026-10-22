@@ -32,6 +32,18 @@
         </div>
     </form>
 </div>
+
+<div class="cardx form-card mt-3">
+    <h3>Email server</h3>
+    <p class="muted" style="font-size:.85rem">
+        Email server ki settings secure rakhne ke liye server ke environment variables se aati hain
+        (<code>EMAIL_HOST</code>, <code>EMAIL_PORT</code>, <code>EMAIL_HOST_USER</code>, <code>EMAIL_HOST_PASSWORD</code>).
+        Yahan current status dikhta hai aur test email bhej sakte ho.
+    </p>
+    <div class="msg" id="e-msg"></div>
+    <div id="e-info" class="muted">Loading...</div>
+    <button class="btn-ghost mt-3" id="e-test" type="button"><i class="bi bi-send"></i> Send test email to me</button>
+</div>
 {% endblock %}
 
 {% block manage_js %}
@@ -63,6 +75,25 @@
         if (res.ok) { fill(res.data); toast('Settings saved'); }
         else { $('msg').textContent = flatten(res.data); $('msg').className = 'msg'; $('msg').style.display = 'block'; }
     });
-    requireAdmin(load);
+
+    async function loadEmail() {
+        const res = await Desk.api('/admin/email-status/');
+        if (!res.ok) { $('e-info').textContent = flatten(res.data); return; }
+        const e = res.data;
+        const row = (k, v) => `<div class="switch-row"><span>${k}</span><b>${esc(v || '—')}</b></div>`;
+        $('e-info').innerHTML =
+            row('Mode', e.mode === 'smtp' ? 'SMTP (real emails)' : 'Console (emails terminal me print hote hain)') +
+            (e.mode === 'smtp' ? row('Host', e.host + ':' + e.port) + row('TLS', e.use_tls ? 'On' : 'Off') + row('Username', e.username) : '') +
+            row('From address', e.from_email);
+    }
+    $('e-test').addEventListener('click', async () => {
+        const b = $('e-test'); b.disabled = true;
+        const res = await Desk.api('/admin/email-test/', { method: 'POST', body: {} });
+        b.disabled = false;
+        const m = $('e-msg');
+        m.textContent = res.ok ? (res.data.message || 'Sent.') : flatten(res.data);
+        m.className = 'msg' + (res.ok ? ' ok' : ''); m.style.display = 'block';
+    });
+    requireAdmin(() => { load(); loadEmail(); });
 </script>
 {% endblock %}

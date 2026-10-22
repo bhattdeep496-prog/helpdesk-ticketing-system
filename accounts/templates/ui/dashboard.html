@@ -252,6 +252,13 @@
             grid-template-columns: 1fr;
         }
     }
+
+    .chips-q { display: flex; flex-wrap: wrap; gap: .45rem; }
+    .chip-q { display: inline-flex; align-items: center; gap: .45rem; background: var(--card-2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: .3rem .75rem; font-size: .8rem; font-weight: 600; text-decoration: none; }
+    .chip-q b { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 .45rem; font-size: .72rem; }
+    .chip-q:hover { border-color: var(--accent); color: var(--text); }
+    .chip-group { margin-bottom: 1rem; }
+    .chip-group .eyebrow { margin-bottom: .45rem; }
 </style>
 {% endblock %}
 
@@ -325,6 +332,32 @@
         <div id="prio-bars"></div>
     </div>
 </div>
+<div class="grid-2" id="extra-row" style="display:none">
+    <div class="cardx">
+        <h3>By category</h3>
+        <div class="muted mb-3" id="cat-sub">All tickets</div>
+        <div id="cat-bars"></div>
+    </div>
+    <div class="cardx">
+        <h3>Quick filters</h3>
+        <div class="muted mb-3">Click to open the matching tickets</div>
+        <div id="quick"></div>
+    </div>
+</div>
+
+<div class="cardx" id="staff-card" style="display:none">
+    <h3>Staff performance</h3>
+    <div class="muted">Tickets closed and resolved per support staff</div>
+    <div class="table-wrap">
+        <table class="t">
+            <thead>
+                <tr><th>Staff</th><th>Assigned</th><th>Open</th><th>Resolved</th><th>Closed</th><th>Avg resolution</th></tr>
+            </thead>
+            <tbody id="staff-body"></tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block page_js %}
@@ -480,6 +513,48 @@
     window.addEventListener('medata', () => {
         document.getElementById('welcome').textContent = 'Welcome back, ' + Me.name + '. Here is what is happening with your tickets today.';
     });
+
+    // ---- Role based extras: admin = category + staff performance, staff = category + quick filters
+    function barRows(rows, labelKey, linkFn) {
+        const max = Math.max(1, ...rows.map(r => r.count));
+        return rows.map(r => `
+      <div class="bar-row"><div class="top"><span>${linkFn ? `<a href="${linkFn(r)}" style="color:inherit">${esc(r[labelKey])}</a>` : esc(r[labelKey])}</span><span>${r.count}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(r.count / max) * 100}%"></div></div></div>`).join('');
+    }
+    function chipGroup(title, items) {
+        if (!items.length) return '';
+        return `<div class="chip-group"><div class="eyebrow">${title}</div><div class="chips-q">` +
+            items.map(i => `<a class="chip-q" href="${i.url}">${esc(i.label)} <b>${i.count}</b></a>`).join('') + '</div></div>';
+    }
+    async function loadRoleData() {
+        const res = await Desk.api('/dashboard/');
+        if (!res.ok || !res.data) return;
+        const d = res.data;
+        if (d.role !== 'admin' && d.role !== 'support') return;   // customer: sirf apna dashboard
+
+        document.getElementById('extra-row').style.display = '';
+        document.getElementById('cat-sub').textContent = d.role === 'admin' ? 'All tickets' : 'Tickets assigned to you';
+        const cats = (d.by_category || []);
+        document.getElementById('cat-bars').innerHTML = cats.length
+            ? barRows(cats, 'category', r => r.category_id ? '/tickets/?category=' + r.category_id : '/tickets/')
+            : '<div class="muted">No categories yet.</div>';
+
+        const st = (d.by_status || []).map(r => ({ label: r.label, count: r.count, url: '/tickets/?status=' + r.status }));
+        const pr = (d.by_priority || []).filter(r => r.count).map(r => ({ label: r.name, count: r.count, url: '/tickets/?priority=' + encodeURIComponent(r.priority) }));
+        const ct = cats.filter(r => r.count && r.category_id).map(r => ({ label: r.category, count: r.count, url: '/tickets/?category=' + r.category_id }));
+        document.getElementById('quick').innerHTML =
+            chipGroup('Status', st) + chipGroup('Priority', pr) + chipGroup('Category', ct) || '<div class="muted">No tickets yet.</div>';
+
+        if (d.role === 'admin') {
+            const staff = (d.staff_performance || []).slice().sort((a, b) => b.closed - a.closed || b.resolved - a.resolved);
+            document.getElementById('staff-card').style.display = '';
+            document.getElementById('staff-body').innerHTML = staff.length ? staff.map(x => `
+          <tr><td><b>${esc(x.username)}</b></td><td>${x.assigned_total}</td><td>${x.open}</td><td>${x.resolved}</td>
+          <td><b>${x.closed}</b></td><td>${x.avg_resolution_hours == null ? '—' : x.avg_resolution_hours + ' h'}</td></tr>`).join('')
+                : '<tr><td colspan="6" class="muted">No support staff yet. Add some from Administration → Users.</td></tr>';
+        }
+    }
     load();
+    loadRoleData();
 </script>
 {% endblock %}

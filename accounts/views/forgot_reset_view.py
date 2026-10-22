@@ -50,12 +50,17 @@ class ForgotPasswordView(APIView):
                 from_email=None,  # uses DEFAULT_FROM_EMAIL
                 recipient_list=[user.email],
             )
+            print('ok')
 
         # Same response either way, so nobody can find out which emails exist.
         return Response(
             {'message': 'If this email is registered, a reset link has been sent.'},
+            # {'message': 'hello'},
             status=status.HTTP_200_OK,
+            
+            
         )
+        
 
 
 class ResetPasswordView(APIView):
