@@ -9,6 +9,7 @@ Django + Django REST Framework helpdesk. Customers raise tickets, support staff 
 - **Tickets:** lifecycle New → In Progress → Resolved → Closed, manual and auto assignment, attachments, tags, comments (with internal notes), history
 - **Dashboards:** separate for admin, support and customer. Admin sees tickets by status/priority/category and staff performance (closed per staff); support gets quick filters
 - **Search & filters:** by ID, title, keyword, status, priority, category, tag, date range
+- **Real-time notifications:** bell icon + live pop-ups over WebSocket (Django Channels). Works without WebSocket too (bell refreshes every 30 s)
 - **Reports:** CSV and PDF export, summary report
 - **Admin UI:** users, categories, priorities, tags, system settings (uploads, registration, notifications), email server status with a "send test email" button
 - **API docs:** Swagger at `/api/docs/`, ReDoc at `/api/redoc/`
@@ -27,6 +28,13 @@ python manage.py runserver
 Open http://127.0.0.1:8000/ and sign in. In development, emails (ticket updates, password reset links) are printed in the terminal.
 
 Create support staff and extra admins from **Administration → Users** in the web UI.
+
+## Real-time notifications (WebSocket)
+
+- Uses **Django Channels**. In `settings.py`, `daphne` is the first app in `INSTALLED_APPS`, so `python manage.py runserver` runs in ASGI mode and WebSocket works out of the box.
+- Browser connects to `ws://<host>/ws/notifications/?token=<API token>`. Each user receives only their own events: new ticket, status change, assignment, new comment.
+- Notifications are also saved in the database (`Notification` model, API: `GET /api/notifications/`, `POST /api/notifications/read/`), so nothing is lost if the user was offline.
+- **Production:** run with `daphne -b 0.0.0.0 -p $PORT config.asgi:application` (the `Procfile` already does this). If you run more than one server/process, set `REDIS_URL` so they share the channel layer.
 
 ## Run tests
 
@@ -50,10 +58,11 @@ Copy `.env.example` to `.env` for local use, or set these on your host.
 | `DEFAULT_FROM_EMAIL` | Sender address | `Deskly Helpdesk <no-reply@deskly.local>` |
 | `DJANGO_MEDIA_ROOT` | Folder for uploaded attachments | `./media` |
 | `SERVE_MEDIA` | Serve `/media/` from Django in production | `1` |
+| `REDIS_URL` | Redis for WebSocket when running several processes | in-memory |
 
 ## Deployment
 
-The repo already contains `Procfile`, `requirements.txt` and `runtime.txt`. WhiteNoise serves static files; Gunicorn runs the app.
+The repo already contains `Procfile`, `requirements.txt` and `runtime.txt`. WhiteNoise serves static files; Daphne (ASGI) runs the app so that WebSocket works.
 
 ### Railway
 

@@ -556,5 +556,6 @@
     }
     load();
     loadRoleData();
+    window.addEventListener('deskly:notification', () => { load(); loadRoleData(); });
 </script>
 {% endblock %}

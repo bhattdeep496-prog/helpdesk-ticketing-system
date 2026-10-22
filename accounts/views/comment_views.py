@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsTicketParticipant
 from tickets.models import Comment, Ticket
+from tickets.notifications import push
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -39,6 +40,10 @@ def notify_new_comment(comment):
         target = ticket.assigned_to
     else:
         target = ticket.created_by
+
+    if target and target.pk != author.pk:
+        push(target, 'comment',
+             f'New comment on ticket #{ticket.pk} from {author.username}', ticket)
 
     if target and target.email and target.pk != author.pk:
         send_mail(

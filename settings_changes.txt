@@ -1,0 +1,19 @@
+config/settings.py me sirf ye 2 changes karne hain (poori file replace mat karna, aapke Gmail wale lines safe rahenge)
+
+CHANGE 1: INSTALLED_APPS = [ ... ]  ke andar sabse upar ye 2 lines add karo:
+    'daphne',
+    'channels',
+
+CHANGE 2: file ke bilkul end me ye block paste karo:
+
+# ---- WebSocket (real-time notifications) ----
+ASGI_APPLICATION = 'config.asgi.application'
+if os.environ.get('REDIS_URL'):
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [os.environ['REDIS_URL']]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'}}

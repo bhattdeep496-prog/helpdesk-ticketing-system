@@ -416,5 +416,6 @@
     });
 
     whenMe(loadTicket);
+    window.addEventListener('deskly:notification', () => { loadTicket(); });
 </script>
 {% endblock %}

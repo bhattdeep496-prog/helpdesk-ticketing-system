@@ -1,2 +1,2 @@
 release: python manage.py migrate --noinput && python manage.py collectstatic --noinput
-web: gunicorn config.wsgi --bind 0.0.0.0:${PORT:-8000} --log-file -
+web: daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application

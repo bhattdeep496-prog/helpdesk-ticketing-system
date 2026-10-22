@@ -225,6 +225,24 @@
         font-size: .9rem;
     }
 
+
+    /* ---- Notifications bell ---- */
+    .bell-wrap { position: relative; }
+    #bell-btn { position: relative; }
+    .bell-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: #e5484d; color: #fff; font-size: .68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .bell-panel { display: none; position: absolute; right: 0; top: 48px; width: 340px; max-width: 88vw; max-height: 430px; overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); z-index: 2000; }
+    .bell-panel.show { display: block; }
+    .bell-head { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1rem; border-bottom: 1px solid var(--border); font-size: .9rem; }
+    .bell-link { background: none; border: 0; color: var(--accent); font-size: .78rem; font-weight: 600; cursor: pointer; padding: 0; }
+    .bell-item { display: block; padding: .75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: .85rem; }
+    .bell-item:last-child { border-bottom: 0; }
+    .bell-item:hover { background: var(--hover); color: var(--text); }
+    .bell-item.unread { background: var(--accent-soft); }
+    .bell-item small { display: block; color: var(--muted); margin-top: .2rem; font-size: .72rem; }
+    .bell-empty { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: .85rem; }
+    .live-toast { position: fixed; right: 1.2rem; bottom: 1.2rem; max-width: 320px; background: var(--card); border: 1px solid var(--accent); color: var(--text); border-radius: 12px; padding: .75rem 1rem; font-size: .86rem; z-index: 3500; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); text-decoration: none; display: none; }
+    .live-toast b { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: .2rem; }
+
     .btn-accent {
         background: var(--accent);
         color: #fff;
@@ -374,6 +392,13 @@
                 <input id="search-input" placeholder="Search tickets by ID, title or keyword...">
             </form>
             <div class="ms-auto d-flex align-items-center gap-2">
+                <div class="bell-wrap" id="bell-wrap">
+                    <button class="icon-btn" id="bell-btn" title="Notifications"><i class="bi bi-bell"></i><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
+                    <div class="bell-panel" id="bell-panel">
+                        <div class="bell-head"><b>Notifications</b><button class="bell-link" id="bell-readall" type="button">Mark all read</button></div>
+                        <div id="bell-list"><div class="bell-empty">Loading...</div></div>
+                    </div>
+                </div>
                 <a class="btn-accent d-none d-sm-inline-flex" href="/tickets/new/"><i class="bi bi-plus-lg"></i> New
                     ticket</a>
                 <button class="icon-btn" id="theme-btn" title="Toggle theme"><i class="bi bi-sun"
@@ -469,5 +494,84 @@
         }
     })();
 </script>
+<script>
+    // ---- Notifications: bell (database) + live updates (WebSocket) ----
+    (function () {
+        const btn = document.getElementById('bell-btn'), panel = document.getElementById('bell-panel');
+        const badge = document.getElementById('bell-badge'), list = document.getElementById('bell-list');
+        let items = [], unread = 0, ws = null, tries = 0, stopped = false, toastTimer;
+
+        const h = (t) => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        function ago(iso) {
+            const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+            if (s < 60) return 'just now';
+            if (s < 3600) return Math.floor(s / 60) + ' min ago';
+            if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+            return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        }
+        function render() {
+            badge.style.display = unread > 0 ? 'flex' : 'none';
+            badge.textContent = unread > 99 ? '99+' : unread;
+            list.innerHTML = items.length ? items.map(n => `
+              <a class="bell-item ${n.is_read ? '' : 'unread'}" href="${h(n.url)}" data-id="${n.id}">
+                ${h(n.message)}<small>${ago(n.created_at)}</small></a>`).join('')
+                : '<div class="bell-empty">No notifications yet.</div>';
+        }
+        async function load() {
+            const res = await Desk.api('/notifications/');
+            if (res.ok && res.data) { items = res.data.results || []; unread = res.data.unread_count || 0; render(); }
+        }
+        async function markRead(ids) {
+            const res = await Desk.api('/notifications/read/', { method: 'POST', body: ids ? { ids } : {} });
+            if (res.ok && res.data) unread = res.data.unread_count;
+        }
+        function toast(n) {
+            let t = document.getElementById('live-toast');
+            if (!t) { t = document.createElement('a'); t.id = 'live-toast'; t.className = 'live-toast'; document.body.appendChild(t); }
+            t.href = n.url; t.innerHTML = '<b>New notification</b>' + h(n.message);
+            t.style.display = 'block'; clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.style.display = 'none'; }, 6000);
+        }
+        function onLive(n) {
+            if (!items.some(x => x.id === n.id)) { items.unshift(n); unread++; }
+            items = items.slice(0, 20); render(); toast(n);
+            window.dispatchEvent(new CustomEvent('deskly:notification', { detail: n }));
+        }
+
+        btn.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('show'); });
+        document.addEventListener('click', (e) => { if (!panel.contains(e.target)) panel.classList.remove('show'); });
+        document.getElementById('bell-readall').addEventListener('click', async () => {
+            await markRead(null); items.forEach(n => n.is_read = true); render();
+        });
+        list.addEventListener('click', async (e) => {
+            const a = e.target.closest('.bell-item'); if (!a) return;
+            e.preventDefault();
+            const id = Number(a.dataset.id);
+            await markRead([id]);
+            window.location = a.getAttribute('href');
+        });
+
+        function connect() {
+            const token = Desk.getToken(); if (!token || stopped) return;
+            const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+            try { ws = new WebSocket(proto + location.host + '/ws/notifications/?token=' + encodeURIComponent(token)); }
+            catch (e) { return; }
+            ws.onopen = () => { tries = 0; };
+            ws.onmessage = (e) => {
+                let d; try { d = JSON.parse(e.data); } catch (_) { return; }
+                if (d.type === 'notification' && d.notification) onLive(d.notification);
+            };
+            ws.onclose = (e) => {
+                if (e.code === 4401) { stopped = true; return; }   // token galat/expired
+                if (tries < 8) setTimeout(connect, Math.min(1000 * Math.pow(2, tries++), 30000));
+            };
+        }
+
+        // WebSocket na chale (jaise sirf WSGI server), tab bhi bell har 30 sec me update hota hai
+        setInterval(() => { if (!ws || ws.readyState !== 1) load(); }, 30000);
+        load(); connect();
+    })();
+</script>
+
 {% block page_js %}{% endblock %}
 {% endblock %}

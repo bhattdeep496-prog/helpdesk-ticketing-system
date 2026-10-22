@@ -78,6 +78,7 @@ class EmailStatusView(APIView):
             'host': getattr(dj_settings, 'EMAIL_HOST', '') if is_smtp else '',
             'port': getattr(dj_settings, 'EMAIL_PORT', None) if is_smtp else None,
             'use_tls': getattr(dj_settings, 'EMAIL_USE_TLS', False) if is_smtp else False,
+            'use_ssl': getattr(dj_settings, 'EMAIL_USE_SSL', False) if is_smtp else False,
             'username': getattr(dj_settings, 'EMAIL_HOST_USER', '') if is_smtp else '',
             'from_email': getattr(dj_settings, 'DEFAULT_FROM_EMAIL', ''),
         })

@@ -153,4 +153,26 @@ class TicketHistory(models.Model):
     def __str__(self):
         return f"#{self.ticket_id}: {self.field} {self.old_value} -> {self.new_value}"
 
+class Notification(models.Model):
+    """In-app notification (bell icon). WebSocket se live bhi bheji jaati hai."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    ticket = models.ForeignKey(
+        Ticket, on_delete=models.CASCADE, null=True, blank=True, related_name="+",
+    )
+    kind = models.CharField(max_length=30)  # created / status / assigned / comment
+    message = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user}: {self.message}"
+
+
 from .site_settings import SystemSettings  #noqa: F401

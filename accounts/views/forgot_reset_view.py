@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -12,6 +14,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import transaction
 from rest_framework.authtoken.models import Token
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -36,29 +40,28 @@ class ForgotPasswordView(APIView):
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            send_mail(
-                subject='Helpdesk - Password Reset',
-                message=(
-                    f'Hello {user.username},\n\n'
-                    f'Open this link to choose a new password:\n'
-                    f'{settings.SITE_URL}/reset-password/?uid={uid}&token={token}\n\n'
-                    f'Or use these details with the API:\n'
-                    f'uid: {uid}\n'
-                    f'token: {token}\n\n'
-                    f'If you did not request this, ignore this email.'
-                ),
-                from_email=None,  # uses DEFAULT_FROM_EMAIL
-                recipient_list=[user.email],
-            )
-            print('ok')
+            try:
+                send_mail(
+                    subject='Helpdesk - Password Reset',
+                    message=(
+                        f'Hello {user.username},\n\n'
+                        f'Open this link to choose a new password:\n'
+                        f'{settings.SITE_URL}/reset-password/?uid={uid}&token={token}\n\n'
+                        f'Or use these details with the API:\n'
+                        f'uid: {uid}\n'
+                        f'token: {token}\n\n'
+                        f'If you did not request this, ignore this email.'
+                    ),
+                    from_email=None,  # uses DEFAULT_FROM_EMAIL
+                    recipient_list=[user.email],
+                )
+            except Exception:
+                logger.exception('Failed to send password reset email to %s', user.email)
 
         # Same response either way, so nobody can find out which emails exist.
         return Response(
             {'message': 'If this email is registered, a reset link has been sent.'},
-            # {'message': 'hello'},
             status=status.HTTP_200_OK,
-            
-            
         )
         
 

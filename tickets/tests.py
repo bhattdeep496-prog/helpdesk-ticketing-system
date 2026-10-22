@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from tickets.models import Priority, Tag, Ticket
+from tickets.models import Notification, Priority, Tag, Ticket
 from tickets.site_settings import SystemSettings
 
 User = get_user_model()
@@ -221,3 +221,58 @@ class EmailStatusAndDashboardExtrasTests(BaseAPITest):
         self.assertEqual(r.status_code, 200)
         self.assertIn('by_category', r.json())
         self.assertIn('staff_performance', r.json())
+
+
+
+class InAppNotificationTests(BaseAPITest):
+    """Bell notifications (database) + live push. WebSocket fail ho to bhi ticket ka kaam chalna chahiye."""
+
+    def new_ticket(self):
+        return Ticket.objects.create(
+            title='Printer broken', description='x', created_by=self.customer, priority='medium'
+        )
+
+    def test_new_ticket_notifies_customer(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.new_ticket()
+        self.assertEqual(Notification.objects.filter(user=self.customer, kind='created').count(), 1)
+
+    def test_status_change_notifies_customer(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            t = self.new_ticket()
+        with self.captureOnCommitCallbacks(execute=True):
+            t.status = Ticket.Status.IN_PROGRESS
+            t.save()
+        self.assertTrue(Notification.objects.filter(user=self.customer, kind='status').exists())
+
+    def test_assignment_notifies_staff(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            t = self.new_ticket()
+        with self.captureOnCommitCallbacks(execute=True):
+            t.assigned_to = self.support
+            t.save()
+        self.assertTrue(Notification.objects.filter(user=self.support, kind='assigned').exists())
+
+    def test_api_returns_only_own_and_mark_read(self):
+        Notification.objects.create(user=self.customer, kind='created', message='mine')
+        Notification.objects.create(user=self.customer2, kind='created', message='not mine')
+        client = self.client_for(self.customer)
+        r = client.get('/api/notifications/')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['unread_count'], 1)
+        self.assertEqual([n['message'] for n in r.json()['results']], ['mine'])
+        r = client.post('/api/notifications/read/', {}, format='json')
+        self.assertEqual(r.json()['unread_count'], 0)
+        # doosre user ki notification touch nahi hui
+        self.assertEqual(Notification.objects.filter(user=self.customer2, is_read=False).count(), 1)
+
+    def test_notifications_need_login(self):
+        self.assertEqual(APIClient().get('/api/notifications/').status_code, 401)
+
+    def test_broken_channel_layer_does_not_break_ticket_creation(self):
+        from unittest import mock
+        with mock.patch('channels.layers.get_channel_layer', side_effect=RuntimeError('redis down')):
+            with self.captureOnCommitCallbacks(execute=True):
+                t = self.new_ticket()
+        self.assertTrue(Ticket.objects.filter(pk=t.pk).exists())
+        self.assertEqual(Notification.objects.filter(user=self.customer).count(), 1)

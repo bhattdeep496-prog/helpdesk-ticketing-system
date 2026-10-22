@@ -10,6 +10,7 @@ from accounts.views.register_view import RegisterView
 from accounts.views.comment_views import TicketCommentView
 from accounts.views.priority_views import PriorityListCreateView, PriorityDetailView
 from accounts.views.ticket_search_view import TicketSearchView
+from accounts.views.notification_views import NotificationListView, NotificationReadView
 from accounts.views.system_settings_view import (
     EmailStatusView,
     EmailTestView,
@@ -129,6 +130,8 @@ urlpatterns = [
     path('admin/settings/', SystemSettingsView.as_view(), name='admin-settings'),
     path('admin/email-status/', EmailStatusView.as_view(), name='admin-email-status'),
     path('admin/email-test/', EmailTestView.as_view(), name='admin-email-test'),
+    path('notifications/', NotificationListView.as_view(), name='notifications'),
+    path('notifications/read/', NotificationReadView.as_view(), name='notifications-read'),
     path('admin/tags/', AdminTagListCreateView.as_view(), name='admin-tags'),
     path('admin/tags/<int:pk>/', AdminTagDetailView.as_view(), name='admin-tag-detail'),
 ]

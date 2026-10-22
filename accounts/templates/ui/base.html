@@ -144,7 +144,9 @@
         }
                 let data = null;
                 try { data = await res.json(); } catch (e) { }
-                if (res.status === 401) { Desk.logout(); }
+                // 401 = session expire (token tha par galat/purana). Login ka galat password
+                // bhi 401 deta hai, wahan redirect nahi karna, sirf error message dikhana hai.
+                if (res.status === 401 && token && !path.startsWith('/login/')) { Desk.logout(); }
                 return { ok: res.ok, status: res.status, data };
             }
         };

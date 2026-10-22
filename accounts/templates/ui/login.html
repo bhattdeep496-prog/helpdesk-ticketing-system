@@ -265,6 +265,12 @@
             if (token) { Desk.setToken(token); window.location = '/dashboard/'; return; }
         }
         const d = res.data || {};
+        if (res.status === 401) {
+            showError('Invalid username or password.');
+            document.getElementById('password').value = '';
+            document.getElementById('password').focus();
+            return;
+        }
         showError(d.detail || d.error || d.non_field_errors?.[0] || 'Login failed. Check your details and try again.');
     });
 </script>
