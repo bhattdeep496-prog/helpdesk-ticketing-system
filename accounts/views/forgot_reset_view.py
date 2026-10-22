@@ -15,9 +15,8 @@ from rest_framework.views import APIView
 from django.db import transaction
 from rest_framework.authtoken.models import Token
 
-logger = logging.getLogger(__name__)
-
 User = get_user_model()
+log = logging.getLogger(__name__)
 
 
 class ForgotPasswordView(APIView):
@@ -35,6 +34,10 @@ class ForgotPasswordView(APIView):
                 {'error': 'Please provide your email.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Sirf DEBUG (local) me response ke saath ek hint jaata hai, taaki pata chale
+        # ki mail kyun nahi aayi. Production me user ko kuch nahi bataya jata.
+        debug_hint = None
 
         user = User.objects.filter(email__iexact=email, is_active=True).first()
         if user:
@@ -55,15 +58,36 @@ class ForgotPasswordView(APIView):
                     from_email=None,  # uses DEFAULT_FROM_EMAIL
                     recipient_list=[user.email],
                 )
-            except Exception:
-                logger.exception('Failed to send password reset email to %s', user.email)
+                if settings.EMAIL_BACKEND.endswith('console.EmailBackend'):
+                    debug_hint = (
+                        'Email is in CONSOLE mode: it was only printed in the server '
+                        'terminal, it was NOT sent to a real inbox. Set the SMTP '
+                        'details (EMAIL_HOST, EMAIL_HOST_USER, ...) in config/settings.py.'
+                    )
+                    log.warning('Password reset for %s printed to console (no SMTP configured).', user.email)
+                else:
+                    debug_hint = (
+                        f'Email was handed to the mail server ({settings.EMAIL_HOST}). '
+                        'If it is not in the inbox, check Spam.'
+                    )
+                    log.info('Password reset email sent to %s', user.email)
+            except Exception as exc:  # wrong SMTP password / host / network
+                # 500 dene se pata chal jata ki ye email registered hai, isliye
+                # error log karte hain aur user ko same response dete hain.
+                log.exception('Password reset email FAILED for %s', user.email)
+                debug_hint = f'Sending the email FAILED: {exc}'
+        else:
+            debug_hint = (
+                'No active user has this email address, so nothing was sent. '
+                'Use the email saved in the user profile.'
+            )
+            log.warning('Password reset requested for unknown email: %s', email)
 
         # Same response either way, so nobody can find out which emails exist.
-        return Response(
-            {'message': 'If this email is registered, a reset link has been sent.'},
-            status=status.HTTP_200_OK,
-        )
-        
+        data = {'message': 'If this email is registered, a reset link has been sent.'}
+        if settings.DEBUG and debug_hint:
+            data['debug'] = debug_hint
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):

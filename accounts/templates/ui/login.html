@@ -73,14 +73,19 @@
     }
 
     .form-side::before {
-        content: "";
-        position: absolute;
-        width: 420px;
-        height: 420px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(91, 61, 245, .35), transparent 70%);
-        top: -120px;
-        right: -120px;
+        glow {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 210px;
+            height: 210px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(91, 61, 245, .55), transparent 70%);
+            filter: blur(30px);
+            pointer-events: none;
+            will-change: transform;
+            transform: translate(calc(100vw * 0.35), 40px);
+        }
     }
 
     .login-card {
