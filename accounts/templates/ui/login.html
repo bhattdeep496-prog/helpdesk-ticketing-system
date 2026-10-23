@@ -72,20 +72,18 @@
         overflow: hidden;
     }
 
-    .form-side::before {
-        glow {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 210px;
-            height: 210px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(91, 61, 245, .55), transparent 70%);
-            filter: blur(30px);
-            pointer-events: none;
-            will-change: transform;
-            transform: translate(calc(100vw * 0.35), 40px);
-        }
+    /* Mouse ke peeche chalne wala glow */
+    .glow {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 210px;
+        height: 210px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(91, 61, 245, .55), transparent 70%);
+        filter: blur(30px);
+        pointer-events: none;
+        will-change: transform;
     }
 
     .login-card {
@@ -314,6 +312,7 @@
         }
         showError(d.detail || d.error || d.non_field_errors?.[0] || 'Login failed. Check your details and try again.');
     });
+
     // Glow mouse ke peeche smoothly chalta hai
     (function () {
         const side = document.querySelector('.form-side');
