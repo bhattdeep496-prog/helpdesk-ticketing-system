@@ -3,46 +3,90 @@
 {% block nav_settings %}active{% endblock %}
 
 {% block content %}
+<style>
+    /* Do cards side-by-side, poori chaudai mein */
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .settings-grid .form-card {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+    }
+
+    @media (max-width: 991px) {
+        .settings-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Toggles ko theme ke rang mein (Bootstrap ka default neela hata kar) */
+    .form-switch .form-check-input:checked {
+        background-color: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .form-switch .form-check-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 .2rem var(--accent-soft);
+    }
+</style>
+
 <h1 class="page-title">System settings</h1>
 <p class="page-sub">Registration, file uploads and email notifications.</p>
 
-<div class="cardx form-card">
-    <div class="msg" id="msg"></div>
-    <form id="form" novalidate>
-        <div class="switch-row">
-            <div><b>Allow public registration</b><small>Anyone can sign up as a customer. Turn off to create accounts only from the Users page.</small></div>
-            <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="s-reg" style="width:2.6em;height:1.4em"></div>
-        </div>
-        <div class="switch-row">
-            <div><b>Email notifications</b><small>Emails for new tickets, status changes and assignments.</small></div>
-            <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="s-notify" style="width:2.6em;height:1.4em"></div>
-        </div>
+<div class="settings-grid">
+    <div class="cardx form-card">
+        <div class="msg" id="msg"></div>
+        <form id="form" novalidate>
+            <div class="switch-row">
+                <div><b>Allow public registration</b><small>Anyone can sign up as a customer. Turn off to create
+                        accounts only from the Users page.</small></div>
+                <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="s-reg"
+                        style="width:2.6em;height:1.4em"></div>
+            </div>
+            <div class="switch-row">
+                <div><b>Email notifications</b><small>Emails for new tickets, status changes and assignments.</small>
+                </div>
+                <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="s-notify"
+                        style="width:2.6em;height:1.4em"></div>
+            </div>
 
-        <div class="row">
-            <div class="col-md-6"><label class="lbl">Max upload size (MB)</label><input class="fx" id="s-size" type="number" min="1" max="50"></div>
-            <div class="col-md-6"><label class="lbl">Max files per upload</label><input class="fx" id="s-files" type="number" min="1" max="20"></div>
-        </div>
-        <label class="lbl">Allowed file types</label>
-        <input class="fx" id="s-types" placeholder="jpg,png,pdf">
-        <div class="muted mt-1" style="font-size:.8rem">Comma separated extensions, for example: jpg,png,gif,pdf</div>
+            <div class="row">
+                <div class="col-md-6"><label class="lbl">Max upload size (MB)</label><input class="fx" id="s-size"
+                        type="number" min="1" max="50"></div>
+                <div class="col-md-6"><label class="lbl">Max files per upload</label><input class="fx" id="s-files"
+                        type="number" min="1" max="20"></div>
+            </div>
+            <label class="lbl">Allowed file types</label>
+            <input class="fx" id="s-types" placeholder="jpg,png,pdf">
+            <div class="muted mt-1" style="font-size:.8rem">Comma separated extensions, for example: jpg,png,gif,pdf
+            </div>
 
-        <div class="d-flex align-items-center gap-3 mt-4">
-            <button class="btn-accent" id="save" type="submit"><i class="bi bi-check2"></i> Save settings</button>
-            <span class="muted" id="updated" style="font-size:.8rem"></span>
-        </div>
-    </form>
-</div>
+            <div class="d-flex align-items-center gap-3 mt-4">
+                <button class="btn-accent" id="save" type="submit"><i class="bi bi-check2"></i> Save settings</button>
+                <span class="muted" id="updated" style="font-size:.8rem"></span>
+            </div>
+        </form>
+    </div>
 
-<div class="cardx form-card mt-3">
-    <h3>Email server</h3>
-    <p class="muted" style="font-size:.85rem">
-        Email server ki settings secure rakhne ke liye server ke environment variables se aati hain
-        (<code>EMAIL_HOST</code>, <code>EMAIL_PORT</code>, <code>EMAIL_HOST_USER</code>, <code>EMAIL_HOST_PASSWORD</code>).
-        Yahan current status dikhta hai aur test email bhej sakte ho.
-    </p>
-    <div class="msg" id="e-msg"></div>
-    <div id="e-info" class="muted">Loading...</div>
-    <button class="btn-ghost mt-3" id="e-test" type="button"><i class="bi bi-send"></i> Send test email to me</button>
+    <div class="cardx form-card">
+        <h3>Email server</h3>
+        <p class="muted" style="font-size:.85rem">
+            Email server ki settings secure rakhne ke liye server ke environment variables se aati hain
+            (<code>EMAIL_HOST</code>, <code>EMAIL_PORT</code>, <code>EMAIL_HOST_USER</code>,
+            <code>EMAIL_HOST_PASSWORD</code>).
+            Yahan current status dikhta hai aur test email bhej sakte ho.
+        </p>
+        <div class="msg" id="e-msg"></div>
+        <div id="e-info" class="muted">Loading...</div>
+        <button class="btn-ghost mt-3" id="e-test" type="button"><i class="bi bi-send"></i> Send test email to
+            me</button>
+    </div>
 </div>
 {% endblock %}
 
@@ -64,13 +108,15 @@
         e.preventDefault();
         $('msg').style.display = 'none';
         $('save').disabled = true;
-        const res = await Desk.api('/admin/settings/', { method: 'PATCH', body: {
-            allow_public_registration: $('s-reg').checked,
-            notifications_enabled: $('s-notify').checked,
-            max_upload_size_mb: Number($('s-size').value),
-            max_files_per_request: Number($('s-files').value),
-            allowed_file_types: $('s-types').value,
-        } });
+        const res = await Desk.api('/admin/settings/', {
+            method: 'PATCH', body: {
+                allow_public_registration: $('s-reg').checked,
+                notifications_enabled: $('s-notify').checked,
+                max_upload_size_mb: Number($('s-size').value),
+                max_files_per_request: Number($('s-files').value),
+                allowed_file_types: $('s-types').value,
+            }
+        });
         $('save').disabled = false;
         if (res.ok) { fill(res.data); toast('Settings saved'); }
         else { $('msg').textContent = flatten(res.data); $('msg').className = 'msg'; $('msg').style.display = 'block'; }
