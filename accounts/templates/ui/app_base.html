@@ -18,8 +18,8 @@
         --border: #232327;
         --text: #f4f4f5;
         --muted: #8b8b95;
-        --accent: #10b981;
-        --accent-soft: rgba(16, 185, 129, .14);
+        --accent: #7c5cff;
+        --accent-soft: rgba(124, 92, 255, .16);
         --hover: #18181b;
         --grid: rgba(255, 255, 255, .06);
     }
@@ -32,8 +32,8 @@
         --border: #e5e7e4;
         --text: #0f1512;
         --muted: #66726b;
-        --accent: #059669;
-        --accent-soft: rgba(5, 150, 105, .12);
+        --accent: #5B3DF5;
+        --accent-soft: rgba(91, 61, 245, .12);
         --hover: #f0f2ef;
         --grid: rgba(0, 0, 0, .06);
     }
@@ -227,21 +227,132 @@
 
 
     /* ---- Notifications bell ---- */
-    .bell-wrap { position: relative; }
-    #bell-btn { position: relative; }
-    .bell-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: #e5484d; color: #fff; font-size: .68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1; }
-    .bell-panel { display: none; position: absolute; right: 0; top: 48px; width: 340px; max-width: 88vw; max-height: 430px; overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, .3); z-index: 2000; }
-    .bell-panel.show { display: block; }
-    .bell-head { display: flex; align-items: center; justify-content: space-between; padding: .8rem 1rem; border-bottom: 1px solid var(--border); font-size: .9rem; }
-    .bell-link { background: none; border: 0; color: var(--accent); font-size: .78rem; font-weight: 600; cursor: pointer; padding: 0; }
-    .bell-item { display: block; padding: .75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; font-size: .85rem; }
-    .bell-item:last-child { border-bottom: 0; }
-    .bell-item:hover { background: var(--hover); color: var(--text); }
-    .bell-item.unread { background: var(--accent-soft); }
-    .bell-item small { display: block; color: var(--muted); margin-top: .2rem; font-size: .72rem; }
-    .bell-empty { padding: 1.5rem 1rem; text-align: center; color: var(--muted); font-size: .85rem; }
-    .live-toast { position: fixed; right: 1.2rem; bottom: 1.2rem; max-width: 320px; background: var(--card); border: 1px solid var(--accent); color: var(--text); border-radius: 12px; padding: .75rem 1rem; font-size: .86rem; z-index: 3500; box-shadow: 0 8px 30px rgba(0, 0, 0, .35); text-decoration: none; display: none; }
-    .live-toast b { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: .2rem; }
+    .bell-wrap {
+        position: relative;
+    }
+
+    #bell-btn {
+        position: relative;
+    }
+
+    .bell-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 4px;
+        border-radius: 999px;
+        background: #e5484d;
+        color: #fff;
+        font-size: .68rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+
+    .bell-panel {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 48px;
+        width: 340px;
+        max-width: 88vw;
+        max-height: 430px;
+        overflow-y: auto;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .3);
+        z-index: 2000;
+    }
+
+    .bell-panel.show {
+        display: block;
+    }
+
+    .bell-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .8rem 1rem;
+        border-bottom: 1px solid var(--border);
+        font-size: .9rem;
+    }
+
+    .bell-link {
+        background: none;
+        border: 0;
+        color: var(--accent);
+        font-size: .78rem;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .bell-item {
+        display: block;
+        padding: .75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        text-decoration: none;
+        font-size: .85rem;
+    }
+
+    .bell-item:last-child {
+        border-bottom: 0;
+    }
+
+    .bell-item:hover {
+        background: var(--hover);
+        color: var(--text);
+    }
+
+    .bell-item.unread {
+        background: var(--accent-soft);
+    }
+
+    .bell-item small {
+        display: block;
+        color: var(--muted);
+        margin-top: .2rem;
+        font-size: .72rem;
+    }
+
+    .bell-empty {
+        padding: 1.5rem 1rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: .85rem;
+    }
+
+    .live-toast {
+        position: fixed;
+        right: 1.2rem;
+        bottom: 1.2rem;
+        max-width: 320px;
+        background: var(--card);
+        border: 1px solid var(--accent);
+        color: var(--text);
+        border-radius: 12px;
+        padding: .75rem 1rem;
+        font-size: .86rem;
+        z-index: 3500;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
+        text-decoration: none;
+        display: none;
+    }
+
+    .live-toast b {
+        display: block;
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--accent);
+        margin-bottom: .2rem;
+    }
 
     .btn-accent {
         background: var(--accent);
@@ -358,15 +469,20 @@
         </div>
         <div class="nav-group" id="admin-nav" style="display:none">
             <div class="eyebrow mb-2">Administration</div>
-            <a class="nav-link-x {% block nav_users %}{% endblock %}" href="/manage/users/"><i class="bi bi-people"></i> Users</a>
-            <a class="nav-link-x {% block nav_setup %}{% endblock %}" href="/manage/setup/"><i class="bi bi-sliders"></i> Categories &amp; priorities</a>
-            <a class="nav-link-x {% block nav_settings %}{% endblock %}" href="/manage/settings/"><i class="bi bi-gear"></i> System settings</a>
+            <a class="nav-link-x {% block nav_users %}{% endblock %}" href="/manage/users/"><i class="bi bi-people"></i>
+                Users</a>
+            <a class="nav-link-x {% block nav_setup %}{% endblock %}" href="/manage/setup/"><i
+                    class="bi bi-sliders"></i> Categories &amp; priorities</a>
+            <a class="nav-link-x {% block nav_settings %}{% endblock %}" href="/manage/settings/"><i
+                    class="bi bi-gear"></i> System settings</a>
         </div>
         <div class="nav-group" id="staff-nav" style="display:none">
             <div class="eyebrow mb-2">Manage</div>
-            <a class="nav-link-x" href="#" data-export="/api/reports/tickets/csv/" data-name="tickets.csv"><i class="bi bi-filetype-csv"></i>
+            <a class="nav-link-x" href="#" data-export="/api/reports/tickets/csv/" data-name="tickets.csv"><i
+                    class="bi bi-filetype-csv"></i>
                 Export CSV</a>
-            <a class="nav-link-x" href="#" data-export="/api/reports/tickets/pdf/" data-name="tickets.pdf"><i class="bi bi-filetype-pdf"></i>
+            <a class="nav-link-x" href="#" data-export="/api/reports/tickets/pdf/" data-name="tickets.pdf"><i
+                    class="bi bi-filetype-pdf"></i>
                 Export PDF</a>
             <a class="nav-link-x" href="/api/docs/" target="_blank"><i class="bi bi-braces"></i> API docs</a>
         </div>
@@ -393,10 +509,14 @@
             </form>
             <div class="ms-auto d-flex align-items-center gap-2">
                 <div class="bell-wrap" id="bell-wrap">
-                    <button class="icon-btn" id="bell-btn" title="Notifications"><i class="bi bi-bell"></i><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
+                    <button class="icon-btn" id="bell-btn" title="Notifications"><i class="bi bi-bell"></i><span
+                            class="bell-badge" id="bell-badge" style="display:none">0</span></button>
                     <div class="bell-panel" id="bell-panel">
-                        <div class="bell-head"><b>Notifications</b><button class="bell-link" id="bell-readall" type="button">Mark all read</button></div>
-                        <div id="bell-list"><div class="bell-empty">Loading...</div></div>
+                        <div class="bell-head"><b>Notifications</b><button class="bell-link" id="bell-readall"
+                                type="button">Mark all read</button></div>
+                        <div id="bell-list">
+                            <div class="bell-empty">Loading...</div>
+                        </div>
                     </div>
                 </div>
                 <a class="btn-accent d-none d-sm-inline-flex" href="/tickets/new/"><i class="bi bi-plus-lg"></i> New
