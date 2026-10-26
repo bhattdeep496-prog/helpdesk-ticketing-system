@@ -302,7 +302,7 @@
             let msg = 'Invalid username or password.';
             if (typeof d.attempts_left === 'number') {
                 msg += d.attempts_left > 0
-                    ? ' ' + d.attempts_left + ' attempt' + (d.attempts_left === 2 ? '' : 's') + ' left.'
+                    ? ' ' + d.attempts_left + ' attempt' + (d.attempts_left === 5 ? '' : 's') + ' left.'
                     : ' One more wrong attempt will lock sign-in for 1 minute.';
             }
             showError(msg);
