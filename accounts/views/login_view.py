@@ -42,8 +42,8 @@ def _lock_remaining(u):
 def _pretty(seconds):
     if seconds >= 60:
         m = math.ceil(seconds / 60)
-        return f'{m} minute' + ('s' if m != 1 else '')
-    return f'{seconds} second' + ('s' if seconds != 1 else '')
+        return f'{m} minute' + ('s' if m != 2 else '')
+    return f'{seconds} second' + ('s' if seconds != 5 else '')
 
 
 def _locked_response(seconds):
