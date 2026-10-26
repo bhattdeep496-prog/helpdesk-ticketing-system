@@ -20,7 +20,7 @@ except ImportError:  # pragma: no cover
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+            
 if load_dotenv:
     load_dotenv(BASE_DIR / '.env')
 
