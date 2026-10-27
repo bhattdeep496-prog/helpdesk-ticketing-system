@@ -4,55 +4,106 @@
 
 {% block page_css %}
 <style>
-    .form-card {
+    .new-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .side-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .side-col .next {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .next h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin: 0 0 .25rem;
+    }
+
+    .steps {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        gap: 1rem;
+        margin-top: .75rem;
+    }
+
+    .step {
+        display: flex;
+        gap: .85rem;
+        align-items: flex-start;
+    }
+
+    .step .n {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: .82rem;
+        flex: none;
+    }
+
+    .step b {
+        display: block;
+        font-size: .92rem;
+        margin-bottom: .1rem;
+    }
+
+    .step span {
+        color: var(--muted);
+        font-size: .85rem;
+    }
+
+    .tips h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin: 0 0 .25rem;
+    }
+
+    .tips .tip {
+        display: flex;
+        gap: .75rem;
+        padding: .85rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: .9rem;
+    }
+
+    .tips .tip:last-child {
+        border-bottom: 0;
+    }
+
+    .tips .tip i {
+        color: var(--accent);
+        font-size: 1.1rem;
+        margin-top: .1rem;
+    }
+
+    .tips .tip b {
+        display: block;
+        margin-bottom: .1rem;
+    }
+
+    .tips .tip span {
+        color: var(--muted);
+    }
+
+    @media (max-width: 991px) {
         .new-layout {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1rem;
-            align-items: start;
-        }
-
-        .tips h3 {
-            font-size: 1.05rem;
-            font-weight: 700;
-            margin: 0 0 .25rem;
-        }
-
-        .tips .tip {
-            display: flex;
-            gap: .75rem;
-            padding: .85rem 0;
-            border-bottom: 1px solid var(--border);
-            font-size: .9rem;
-        }
-
-        .tips .tip:last-child {
-            border-bottom: 0;
-        }
-
-        .tips .tip i {
-            color: var(--accent);
-            font-size: 1.1rem;
-            margin-top: .1rem;
-        }
-
-        .tips .tip b {
-            display: block;
-            margin-bottom: .1rem;
-        }
-
-        .tips .tip span {
-            color: var(--muted);
-        }
-
-        textarea.fx {
-            min-height: 220px;
-        }
-
-        @media (max-width: 991px) {
-            .new-layout {
-                grid-template-columns: 1fr;
-            }
+            grid-template-columns: 1fr;
         }
     }
 
@@ -82,7 +133,7 @@
     }
 
     textarea.fx {
-        min-height: 160px;
+        min-height: 220px;
         resize: vertical;
     }
 
@@ -109,33 +160,102 @@
         color: var(--accent);
     }
 
-    .drop {
+    /* 5 image boxes, one image per box */
+    .slots {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: .75rem;
+    }
+
+    .slot {
+        position: relative;
+        aspect-ratio: 1 / 1;
         border: 1.5px dashed var(--border);
         border-radius: 12px;
-        padding: 1.4rem;
+        display: grid;
+        place-items: center;
         text-align: center;
         color: var(--muted);
         cursor: pointer;
+        overflow: hidden;
+        background: var(--card-2);
+        font-size: .8rem;
+        transition: all .15s;
     }
 
-    .drop:hover {
+    .slot:hover {
         border-color: var(--accent);
         color: var(--text);
     }
 
-    .drop i {
-        font-size: 1.6rem;
+    .slot .bi-image {
+        font-size: 1.5rem;
+        display: block;
+        margin-bottom: .2rem;
+    }
+
+    .slot img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .slot.filled {
+        border-style: solid;
+        border-color: var(--accent);
+    }
+
+    .slot.filled .ph {
+        visibility: hidden;
+    }
+
+    .slot .rm {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 0;
+        background: rgba(0, 0, 0, .7);
+        color: #fff;
+        font-size: 1rem;
+        line-height: 1;
+        display: none;
+        place-items: center;
+        z-index: 2;
+    }
+
+    .slot.filled .rm {
+        display: grid;
+    }
+
+    .slot .nm {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, .6);
+        color: #fff;
+        font-size: .68rem;
+        padding: .25rem .45rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: none;
+        z-index: 1;
+    }
+
+    .slot.filled .nm {
         display: block;
     }
 
-    .file-list {
-        margin-top: .6rem;
-        font-size: .85rem;
-        color: var(--muted);
-    }
-
-    .file-list div {
-        padding: .2rem 0;
+    @media (max-width: 767px) {
+        .slots {
+            grid-template-columns: repeat(3, 1fr);
+        }
     }
 
     .msg {
@@ -195,10 +315,8 @@
             <label class="lbl">Tags (optional)</label>
             <div class="chips" id="tags"><span class="muted">No tags available</span></div>
 
-            <label class="lbl">Attachments (images or PDF)</label>
-            <div class="drop" id="drop"><i class="bi bi-cloud-arrow-up"></i>Click to choose files</div>
-            <input type="file" id="files" multiple accept=".jpg,.jpeg,.png,.gif,.pdf" hidden>
-            <div class="file-list" id="file-list"></div>
+            <label class="lbl">Attachments (up to 5 images, one per box)</label>
+            <div class="slots" id="slots"></div>
 
             <div class="d-flex gap-2 mt-4">
                 <button class="btn-accent" id="submit" type="submit"><i class="bi bi-send"></i> Create ticket</button>
@@ -208,87 +326,163 @@
     </div>
 
     <aside class="cardx tips">
-        <h3>Tips for a faster reply</h3>
-        <div class="muted mb-2" style="font-size:.85rem">A clear ticket gets solved sooner.</div>
-        <div class="tip"><i class="bi bi-pencil-square"></i>
-            <div><b>Write a clear title</b><span>Say what is wrong in one line, like "Cannot log in on mobile".</span>
-            </div>
+        <div class="side-col">
+            <aside class="cardx tips">
+                <h3>Tips for a faster reply</h3>
+                <div class="muted mb-2" style="font-size:.85rem">A clear ticket gets solved sooner.</div>
+                <div class="tip"><i class="bi bi-pencil-square"></i>
+                    <div><b>Write a clear title</b><span>Say what is wrong in one line, like "Cannot log in on
+                            mobile".</span></div>
+                </div>
+                <div class="tip"><i class="bi bi-list-check"></i>
+                    <div><b>Add the steps</b><span>What did you do, what happened, and what did you expect?</span></div>
+                </div>
+                <div class="tip"><i class="bi bi-flag"></i>
+                    <div><b>Pick the right priority</b><span>Use High or Critical only when work is blocked.</span>
+                    </div>
+                </div>
+                <div class="tip"><i class="bi bi-image"></i>
+                    <div><b>Attach a screenshot</b><span>A picture of the problem saves a lot of back and forth.</span>
+                    </div>
+                </div>
+            </aside>
+
+            <aside class="cardx next">
+                <h3>What happens next</h3>
+                <div class="muted" style="font-size:.85rem">After you submit, your ticket follows these steps.</div>
+                <div class="steps">
+                    <div class="step">
+                        <div class="n">1</div>
+                        <div><b>Ticket created</b><span>You get a ticket number and can track it any time.</span></div>
+                    </div>
+                    <div class="step">
+                        <div class="n">2</div>
+                        <div><b>Assigned to an agent</b><span>An admin sends it to the right support person.</span>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="n">3</div>
+                        <div><b>Agent replies</b><span>You see replies in the ticket and get email updates.</span></div>
+                    </div>
+                    <div class="step">
+                        <div class="n">4</div>
+                        <div><b>Resolved and closed</b><span>Once it is fixed, the status changes to Resolved, then
+                                Closed.</span></div>
+                    </div>
+                </div>
+            </aside>
         </div>
-        <div class="tip"><i class="bi bi-list-check"></i>
-            <div><b>Add the steps</b><span>What did you do, what happened, and what did you expect?</span></div>
-        </div>
-        <div class="tip"><i class="bi bi-flag"></i>
-            <div><b>Pick the right priority</b><span>Use High or Critical only when work is blocked.</span></div>
-        </div>
-        <div class="tip"><i class="bi bi-image"></i>
-            <div><b>Attach a screenshot</b><span>A picture or PDF of the problem saves a lot of back and forth.</span>
-            </div>
-        </div>
-    </aside>
-</div>
-{% endblock %}
-{% block page_js %}
-<script>
-    const $ = (id) => document.getElementById(id);
-    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const listOf = (d) => Array.isArray(d) ? d : ((d && d.results) || []);
-    const selectedTags = new Set();
-    let chosenFiles = [];
 
-    function showMsg(text) { $('msg').textContent = text; $('msg').style.display = 'block'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function flatten(d) {
-        if (!d) return 'Something went wrong.';
-        if (typeof d === 'string') return d;
-        return Object.entries(d).map(([k, v]) => (k === 'detail' || k === 'non_field_errors' ? '' : k + ': ') + [].concat(v).join(' ')).join(' | ');
-    }
+        {% endblock %}
 
-    async function init() {
-        const [pr, ca, tg] = await Promise.all([Desk.api('/priorities/'), Desk.api('/admin/categories/'), Desk.api('/admin/tags/')]);
-        const prios = listOf(pr.data).filter(p => p.slug && p.is_active !== false);
-        $('priority').innerHTML = prios.map(p => `<option value="${esc(p.slug)}">${esc(p.name)}</option>`).join('') || '<option value="medium">Medium</option>';
-        if (prios.some(p => p.slug === 'medium')) $('priority').value = 'medium';
-        listOf(ca.data).forEach(c => $('category').insertAdjacentHTML('beforeend', `<option value="${c.id}">${esc(c.name)}</option>`));
-        const tags = listOf(tg.data);
-        if (tags.length) {
-            $('tags').innerHTML = tags.map(t => `<button type="button" class="chipx" data-id="${t.id}">${esc(t.name)}</button>`).join('');
-        }
-    }
+        {% block page_js %}
+        <script>
+            const $ = (id) => document.getElementById(id);
+            const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+            const listOf = (d) => Array.isArray(d) ? d : ((d && d.results) || []);
+            const selectedTags = new Set();
+            let chosenFiles = [];
 
-    $('tags').addEventListener('click', (e) => {
-        const b = e.target.closest('.chipx'); if (!b) return;
-        const id = Number(b.dataset.id);
-        if (selectedTags.has(id)) { selectedTags.delete(id); b.classList.remove('on'); } else { selectedTags.add(id); b.classList.add('on'); }
-    });
+            function showMsg(text) { $('msg').textContent = text; $('msg').style.display = 'block'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+            function flatten(d) {
+                if (!d) return 'Something went wrong.';
+                if (typeof d === 'string') return d;
+                return Object.entries(d).map(([k, v]) => (k === 'detail' || k === 'non_field_errors' ? '' : k + ': ') + [].concat(v).join(' ')).join(' | ');
+            }
 
-    $('drop').addEventListener('click', () => $('files').click());
-    $('files').addEventListener('change', (e) => {
-        chosenFiles = Array.from(e.target.files);
-        $('file-list').innerHTML = chosenFiles.map(f => `<div><i class="bi bi-paperclip"></i> ${esc(f.name)} (${(f.size / 1024).toFixed(0)} KB)</div>`).join('');
-    });
+            async function init() {
+                const [pr, ca, tg] = await Promise.all([Desk.api('/priorities/'), Desk.api('/admin/categories/'), Desk.api('/admin/tags/')]);
+                const prios = listOf(pr.data).filter(p => p.slug && p.is_active !== false);
+                $('priority').innerHTML = prios.map(p => `<option value="${esc(p.slug)}">${esc(p.name)}</option>`).join('') || '<option value="medium">Medium</option>';
+                if (prios.some(p => p.slug === 'medium')) $('priority').value = 'medium';
+                listOf(ca.data).forEach(c => $('category').insertAdjacentHTML('beforeend', `<option value="${c.id}">${esc(c.name)}</option>`));
+                const tags = listOf(tg.data);
+                if (tags.length) {
+                    $('tags').innerHTML = tags.map(t => `<button type="button" class="chipx" data-id="${t.id}">${esc(t.name)}</button>`).join('');
+                }
+            }
 
-    $('form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        $('msg').style.display = 'none';
-        const title = $('title').value.trim(), description = $('description').value.trim();
-        if (!title || !description) { showMsg('Title and description are required.'); return; }
+            $('tags').addEventListener('click', (e) => {
+                const b = e.target.closest('.chipx'); if (!b) return;
+                const id = Number(b.dataset.id);
+                if (selectedTags.has(id)) { selectedTags.delete(id); b.classList.remove('on'); } else { selectedTags.add(id); b.classList.add('on'); }
+            });
 
-        const body = { title, description, priority: $('priority').value, tags: Array.from(selectedTags) };
-        if ($('category').value) body.category = Number($('category').value);
+            // ---- 5 image boxes, exactly one image per box ----
+            const MAX_SLOTS = 5;
+            const slotFiles = new Array(MAX_SLOTS).fill(null);
 
-        $('submit').disabled = true;
-        const res = await Desk.api('/my-tickets/', { method: 'POST', body });
-        if (!res.ok) { $('submit').disabled = false; showMsg(flatten(res.data)); return; }
+            function syncFiles() { chosenFiles = slotFiles.filter(Boolean); }
 
-        const id = res.data.id;
-        if (chosenFiles.length) {
-            const fd = new FormData();
-            chosenFiles.forEach(f => fd.append('files', f));
-            const up = await Desk.api('/tickets/' + id + '/attachments/', { method: 'POST', body: fd });
-            if (!up.ok) { alert('Ticket created, but files were not uploaded: ' + flatten(up.data)); }
-        }
-        window.location = '/tickets/' + id + '/';
-    });
+            function setSlot(i, slot, file) {
+                slotFiles[i] = file;
+                const old = slot.querySelector('img');
+                if (old) { URL.revokeObjectURL(old.src); old.remove(); }
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.alt = file.name;
+                slot.prepend(img);
+                slot.querySelector('.nm').textContent = file.name;
+                slot.classList.add('filled');
+                syncFiles();
+            }
 
-    init();
-</script>
-{% endblock %}
+            function clearSlot(i, slot) {
+                slotFiles[i] = null;
+                const img = slot.querySelector('img');
+                if (img) { URL.revokeObjectURL(img.src); img.remove(); }
+                slot.querySelector('input').value = '';
+                slot.classList.remove('filled');
+                syncFiles();
+            }
+
+            (function buildSlots() {
+                const wrap = $('slots');
+                for (let i = 0; i < MAX_SLOTS; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'slot';
+                    slot.innerHTML =
+                        '<div class="ph"><i class="bi bi-image"></i>Image ' + (i + 1) + '</div>' +
+                        '<button type="button" class="rm" title="Remove">&times;</button>' +
+                        '<div class="nm"></div>' +
+                        '<input type="file" accept="image/png,image/jpeg,image/gif" hidden>';
+                    const input = slot.querySelector('input');
+                    input.addEventListener('click', (e) => e.stopPropagation());
+                    slot.addEventListener('click', (e) => { if (!e.target.closest('.rm')) input.click(); });
+                    input.addEventListener('change', () => {
+                        const f = input.files[0];
+                        if (!f) return;
+                        if (!f.type.startsWith('image/')) { showMsg('Only image files can be added in these boxes.'); input.value = ''; return; }
+                        setSlot(i, slot, f);
+                    });
+                    slot.querySelector('.rm').addEventListener('click', (e) => { e.stopPropagation(); clearSlot(i, slot); });
+                    wrap.appendChild(slot);
+                }
+            })();
+
+            $('form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                $('msg').style.display = 'none';
+                const title = $('title').value.trim(), description = $('description').value.trim();
+                if (!title || !description) { showMsg('Title and description are required.'); return; }
+
+                const body = { title, description, priority: $('priority').value, tags: Array.from(selectedTags) };
+                if ($('category').value) body.category = Number($('category').value);
+
+                $('submit').disabled = true;
+                const res = await Desk.api('/my-tickets/', { method: 'POST', body });
+                if (!res.ok) { $('submit').disabled = false; showMsg(flatten(res.data)); return; }
+
+                const id = res.data.id;
+                if (chosenFiles.length) {
+                    const fd = new FormData();
+                    chosenFiles.forEach(f => fd.append('files', f));
+                    const up = await Desk.api('/tickets/' + id + '/attachments/', { method: 'POST', body: fd });
+                    if (!up.ok) { alert('Ticket created, but files were not uploaded: ' + flatten(up.data)); }
+                }
+                window.location = '/tickets/' + id + '/';
+            });
+
+            init();
+        </script>
+        {% endblock %}
