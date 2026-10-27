@@ -154,6 +154,11 @@
         border-color: var(--accent);
     }
 
+    .fx:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+    }
+
     textarea.fx {
         min-height: 90px;
         resize: vertical;
@@ -213,8 +218,13 @@
         font-size: .85rem;
     }
 
-    .btn-ghost:hover {
+    .btn-ghost:hover:not(:disabled) {
         background: var(--hover);
+    }
+
+    .btn-ghost:disabled {
+        opacity: .5;
+        cursor: not-allowed;
     }
 
     @media (max-width: 991px) {
@@ -267,10 +277,11 @@
                     <div class="muted mt-2">Loading...</div>
                 </div>
                 <div class="d-flex gap-2 mt-3 align-items-center flex-wrap">
-                    <input type="file" id="f-input" multiple accept=".jpg,.jpeg,.png,.gif,.pdf" class="fx"
+                    <input type="file" id="f-input" accept="image/png,image/jpeg,image/gif" class="fx"
                         style="max-width:320px">
                     <button class="btn-ghost" id="f-upload" type="button"><i class="bi bi-upload"></i> Upload</button>
                 </div>
+                <div class="muted mt-2" id="f-count" style="font-size:.8rem"></div>
                 <div class="notice err" id="f-err"></div>
             </div>
         </div>
@@ -311,6 +322,7 @@
 <script>
     const TICKET_ID = parseInt("{{ ticket_id }}", 10);
     const STATUS = { new: 'New', in_progress: 'In Progress', resolved: 'Resolved', closed: 'Closed' };
+    const MAX_IMAGES = 5;   // ek ticket par maximum images
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const listOf = (d) => Array.isArray(d) ? d : ((d && d.results) || []);
@@ -320,8 +332,23 @@
 
     let ticketUrl = '/my-tickets/' + TICKET_ID + '/';
     let isStaff = false;
+    let fileCount = 0;
+    let ticketClosed = false;
 
     function whenMe(cb) { if (Me.role) cb(); else window.addEventListener('medata', cb, { once: true }); }
+
+    // Upload box: ek baar mein 1 image, ticket par max 5, closed ticket par band
+    function updateUploadState() {
+        const full = fileCount >= MAX_IMAGES;
+        const off = full || ticketClosed;
+        $('f-input').disabled = off;
+        $('f-upload').disabled = off;
+        $('f-count').textContent = ticketClosed
+            ? 'Files cannot be added to a closed ticket.'
+            : (full
+                ? 'Maximum of ' + MAX_IMAGES + ' images reached.'
+                : fileCount + ' of ' + MAX_IMAGES + ' images used. You can add one image at a time.');
+    }
 
     function render(t) {
         $('t-title').textContent = t.title;
@@ -338,6 +365,8 @@
         $('d-created').textContent = fmt(t.created_at);
         $('d-updated').textContent = fmt(t.updated_at);
         $('s-select').value = t.status;
+        ticketClosed = t.status === 'closed';
+        updateUploadState();
         $('loading').style.display = 'none';
         $('view').style.display = 'block';
     }
@@ -380,6 +409,8 @@
         const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/');
         const items = listOf(res.data);
         if (!res.ok) { $('files').innerHTML = '<div class="muted mt-2">Could not load attachments.</div>'; return; }
+        fileCount = items.length;
+        updateUploadState();
         $('files').innerHTML = items.length ? items.map(f => `
       <div class="file-row"><i class="bi bi-paperclip"></i>
         <a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.filename)}</a>
@@ -398,9 +429,11 @@
     });
 
     $('f-upload').addEventListener('click', async () => {
-        const files = Array.from($('f-input').files);
-        if (!files.length) { note($('f-err'), 'Choose at least one file.', 'err'); return; }
-        const fd = new FormData(); files.forEach(f => fd.append('files', f));
+        const file = $('f-input').files[0];
+        if (!file) { note($('f-err'), 'Choose an image first.', 'err'); return; }
+        if (!file.type.startsWith('image/')) { note($('f-err'), 'Only images can be uploaded.', 'err'); return; }
+        if (fileCount >= MAX_IMAGES) { note($('f-err'), 'This ticket already has ' + MAX_IMAGES + ' images.', 'err'); return; }
+        const fd = new FormData(); fd.append('files', file);
         const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/', { method: 'POST', body: fd });
         if (!res.ok) { note($('f-err'), flatten(res.data), 'err'); return; }
         $('f-err').style.display = 'none'; $('f-input').value = '';
@@ -413,6 +446,8 @@
         if (!res.ok) { note($('s-msg'), flatten(res.data), 'err'); return; }
         note($('s-msg'), 'Status updated.', 'ok');
         $('t-status').textContent = STATUS[status]; $('t-status').className = 'pill p-' + status;
+        ticketClosed = status === 'closed';
+        updateUploadState();
     });
 
     whenMe(loadTicket);
