@@ -188,6 +188,25 @@
         color: var(--accent);
     }
 
+    .rm-file {
+        margin-left: .5rem;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: #ff8a8e;
+        border-radius: 8px;
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        flex: none;
+    }
+
+    .rm-file:hover {
+        background: rgba(229, 72, 77, .12);
+        border-color: rgba(229, 72, 77, .5);
+    }
+
     .notice {
         display: none;
         border-radius: 10px;
@@ -414,18 +433,20 @@
         $('files').innerHTML = items.length ? items.map(f => `
       <div class="file-row"><i class="bi bi-paperclip"></i>
         <a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.filename)}</a>
-        <span class="muted ms-auto" style="font-size:.78rem">${esc(f.uploaded_by || '')}</span></div>`).join('')
+        <span class="muted ms-auto" style="font-size:.78rem">${esc(f.uploaded_by || '')}</span>
+        ${f.can_delete && !ticketClosed ? `<button type="button" class="rm-file" data-id="${f.id}" title="Remove this file"><i class="bi bi-trash"></i></button>` : ''}
+      </div>`).join('')
             : '<div class="muted mt-2">No files attached.</div>';
     }
 
-    $('c-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const body = $('c-body').value.trim();
-        if (!body) { note($('c-err'), 'Please write a message first.', 'err'); return; }
-        const res = await Desk.api('/tickets/' + TICKET_ID + '/comments/', { method: 'POST', body: { body, is_internal: isStaff && $('c-internal').checked } });
-        if (!res.ok) { note($('c-err'), flatten(res.data), 'err'); return; }
-        $('c-err').style.display = 'none'; $('c-body').value = ''; $('c-internal').checked = false;
-        loadComments();
+    $('files').addEventListener('click', async (e) => {
+        const b = e.target.closest('.rm-file');
+        if (!b) return;
+        if (!confirm('Remove this image from the ticket?')) return;
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/' + b.dataset.id + '/', { method: 'DELETE' });
+        if (!res.ok) { note($('f-err'), flatten(res.data), 'err'); return; }
+        $('f-err').style.display = 'none';
+        loadFiles();
     });
 
     $('f-upload').addEventListener('click', async () => {

@@ -12,15 +12,23 @@ from accounts.permissions import IsTicketParticipant
 from tickets.models import Attachment, Ticket
 from tickets.site_settings import SystemSettings
 
+MAX_FILES_PER_TICKET = 5   # ek ticket par kul itni files
+
+
+def can_delete_attachment(user, attachment):
+    """Sirf upload karne wala ya admin file hata sakta hai."""
+    return bool(user.is_helpdesk_admin or attachment.uploaded_by_id == user.id)
+
 
 class AttachmentSerializer(serializers.ModelSerializer):
     uploaded_by = serializers.CharField(source='uploaded_by.username', read_only=True)
     filename = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
 
     class Meta:
         model = Attachment
-        fields = ['id', 'filename', 'url', 'uploaded_by', 'uploaded_at']
+        fields = ['id', 'filename', 'url', 'uploaded_by', 'uploaded_at', 'can_delete']
 
     def get_filename(self, obj):
         return os.path.basename(obj.file.name)
@@ -29,6 +37,18 @@ class AttachmentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         url = obj.file.url
         return request.build_absolute_uri(url) if request else url
+
+    def get_can_delete(self, obj):
+        request = self.context.get('request')
+        return bool(request and can_delete_attachment(request.user, obj))
+
+
+def get_ticket_for_user(request, view, pk):
+    ticket = get_object_or_404(Ticket, pk=pk)
+    permission = IsTicketParticipant()
+    if not permission.has_object_permission(request, view, ticket):
+        raise PermissionDenied(permission.message)
+    return ticket
 
 
 class TicketAttachmentView(APIView):
@@ -42,15 +62,8 @@ class TicketAttachmentView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
-    def _get_ticket(self, request, pk):
-        ticket = get_object_or_404(Ticket, pk=pk)
-        permission = IsTicketParticipant()
-        if not permission.has_object_permission(request, self, ticket):
-            raise PermissionDenied(permission.message)
-        return ticket
-
     def get(self, request, pk, *args, **kwargs):
-        ticket = self._get_ticket(request, pk)
+        ticket = get_ticket_for_user(request, self, pk)
         data = AttachmentSerializer(
             ticket.attachments.select_related('uploaded_by'),
             many=True, context={'request': request},
@@ -58,12 +71,12 @@ class TicketAttachmentView(APIView):
         return Response(data)
 
     def post(self, request, pk, *args, **kwargs):
-        ticket = self._get_ticket(request, pk)
+        ticket = get_ticket_for_user(request, self, pk)
 
         if ticket.status == Ticket.Status.CLOSED:
             raise ValidationError('Files cannot be added to a closed ticket.')
 
-        # Limits ab admin settings (database) se aati hain
+        # Limits admin settings (database) se aati hain
         cfg = SystemSettings.load()
         allowed = {
             '.' + t.strip().lower().lstrip('.')
@@ -78,6 +91,15 @@ class TicketAttachmentView(APIView):
             raise ValidationError(
                 {'files': 'Please upload at least one file (field name: "files").'}
             )
+
+        # Ek ticket par kul MAX_FILES_PER_TICKET files
+        existing = ticket.attachments.count()
+        if existing + len(files) > MAX_FILES_PER_TICKET:
+            raise ValidationError(
+                {'files': f'A ticket can have at most {MAX_FILES_PER_TICKET} files '
+                          f'({existing} already attached).'}
+            )
+
         if len(files) > max_files:
             raise ValidationError(
                 {'files': f'You can upload at most {max_files} files at a time.'}
@@ -107,3 +129,25 @@ class TicketAttachmentView(APIView):
             created, many=True, context={'request': request}
         ).data
         return Response(data, status=status.HTTP_201_CREATED)
+
+
+class TicketAttachmentDeleteView(APIView):
+    """
+    DELETE /api/tickets/<id>/attachments/<attachment_id>/
+    Galat upload ki hui file hatao. Sirf upload karne wala ya Admin hata sakta hai,
+    aur closed ticket par nahi.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk, attachment_id, *args, **kwargs):
+        ticket = get_ticket_for_user(request, self, pk)
+        attachment = get_object_or_404(Attachment, pk=attachment_id, ticket=ticket)
+
+        if not can_delete_attachment(request.user, attachment):
+            raise PermissionDenied('You can only remove files that you uploaded.')
+        if ticket.status == Ticket.Status.CLOSED:
+            raise ValidationError('Files cannot be removed from a closed ticket.')
+
+        attachment.file.delete(save=False)   # disk se file bhi hatao
+        attachment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

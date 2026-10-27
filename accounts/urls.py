@@ -22,7 +22,7 @@ from accounts.views.admin_ticket_views import (
     AdminAssignTicketView,
     AdminAutoAssignTicketView,
 )
-from accounts.views.attachment_views import TicketAttachmentView
+from accounts.views.attachment_views import TicketAttachmentView, TicketAttachmentDeleteView
 # pyrefly: ignore [missing-import]
 from accounts.views.admin_views import (
     AdminUserListCreateView,
@@ -96,7 +96,8 @@ urlpatterns = [
 
     # Attachments (customer / assigned support / admin)
     path("tickets/<int:pk>/attachments/", TicketAttachmentView.as_view(), name="ticket-attachments"),
-
+    path("tickets/<int:pk>/attachments/<int:attachment_id>/", TicketAttachmentDeleteView.as_view(), name="ticket-attachment-delete"),
+    
     # 3.3 Comments
     path("tickets/<int:pk>/comments/", TicketCommentView.as_view(), name="ticket-comments"),
 
