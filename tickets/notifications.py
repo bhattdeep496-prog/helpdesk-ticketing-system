@@ -129,3 +129,70 @@ def notify_assigned(ticket):
         f'Priority: {ticket.priority}\n'
         f'Status:   {_status_label(ticket.status)}',
     )
+
+
+def notify_reassigned(ticket, by_user):
+    """
+    Support staff ne ticket dusre staff ko di:
+    naye staff ko (in-app + email) aur customer ko (in-app) batao.
+    """
+    staff = ticket.assigned_to
+    by_name = _name(by_user)
+    push(
+        staff, 'assigned',
+        f'Ticket #{ticket.pk} was reassigned to you by {by_name}: {ticket.title}',
+        ticket,
+    )
+    _send(
+        staff,
+        f'[Ticket #{ticket.pk}] Reassigned to you: {ticket.title}',
+        f'Hello {_name(staff)},\n\n'
+        f'{by_name} has reassigned a ticket to you.\n\n'
+        f'Ticket:   #{ticket.pk} {ticket.title}\n'
+        f'Customer: {ticket.created_by.username}\n'
+        f'Priority: {ticket.priority}\n'
+        f'Status:   {_status_label(ticket.status)}',
+    )
+    push(
+        ticket.created_by, 'assigned',
+        f'Ticket #{ticket.pk} is now handled by {_name(staff)}.',
+        ticket,
+    )
+
+
+def notify_raised_to_role(ticket):
+    """
+    Customer ne ticket kisi role (Admin ya Support) ko raise ki:
+    us role ke saare active users ko in-app notification + email.
+    (Ticket model me raised_to_role field ho tabhi chalta hai, warna kuch nahi karta.)
+    """
+    role = getattr(ticket, 'raised_to_role', None)
+    if not role:
+        return
+
+    from django.contrib.auth import get_user_model
+    from django.db.models import Q
+    User = get_user_model()
+
+    users = User.objects.filter(is_active=True)
+    if role == 'admin':
+        users = users.filter(Q(role='admin') | Q(is_superuser=True))
+    else:
+        users = users.filter(role=role)
+
+    for user in users:
+        push(
+            user, 'created',
+            f'New ticket #{ticket.pk} for {role}: {ticket.title}',
+            ticket,
+        )
+        _send(
+            user,
+            f'[Ticket #{ticket.pk}] New ticket raised to {role}: {ticket.title}',
+            f'Hello {_name(user)},\n\n'
+            f'A new ticket was raised to {role}.\n\n'
+            f'Ticket:   #{ticket.pk} {ticket.title}\n'
+            f'Customer: {ticket.created_by.username}\n'
+            f'Priority: {ticket.priority}\n'
+            f'Status:   {_status_label(ticket.status)}',
+        )

@@ -12,8 +12,6 @@ from accounts.permissions import IsTicketParticipant
 from tickets.models import Attachment, Ticket
 from tickets.site_settings import SystemSettings
 
-MAX_FILES_PER_TICKET = 5   # ek ticket par kul itni files
-
 
 def can_delete_attachment(user, attachment):
     """Sirf upload karne wala ya admin file hata sakta hai."""
@@ -57,6 +55,9 @@ class TicketAttachmentView(APIView):
     POST /api/tickets/<id>/attachments/   -> upload one or MORE files
          (multipart/form-data, field name: "files", repeat it for many files)
 
+    Files ki count aur size par koi limit nahi hai.
+    Sirf file type (extension) check hota hai (Admin settings me allowed types).
+
     Access: ticket ka owner (customer), assigned support staff, aur Admin.
     """
     permission_classes = [IsAuthenticated]
@@ -76,33 +77,18 @@ class TicketAttachmentView(APIView):
         if ticket.status == Ticket.Status.CLOSED:
             raise ValidationError('Files cannot be added to a closed ticket.')
 
-        # Limits admin settings (database) se aati hain
+        # Sirf allowed file types admin settings (database) se aate hain
         cfg = SystemSettings.load()
         allowed = {
             '.' + t.strip().lower().lstrip('.')
             for t in cfg.allowed_types_list()
             if t.strip()
         }
-        max_files = cfg.max_files_per_request
-        max_mb = cfg.max_upload_size_mb
 
         files = request.FILES.getlist('files')
         if not files:
             raise ValidationError(
                 {'files': 'Please upload at least one file (field name: "files").'}
-            )
-
-        # Ek ticket par kul MAX_FILES_PER_TICKET files
-        existing = ticket.attachments.count()
-        if existing + len(files) > MAX_FILES_PER_TICKET:
-            raise ValidationError(
-                {'files': f'A ticket can have at most {MAX_FILES_PER_TICKET} files '
-                          f'({existing} already attached).'}
-            )
-
-        if len(files) > max_files:
-            raise ValidationError(
-                {'files': f'You can upload at most {max_files} files at a time.'}
             )
 
         # Pehle sab validate karo, phir save (ek bhi galat ho to koi save nahi)
@@ -114,8 +100,6 @@ class TicketAttachmentView(APIView):
                     f"{f.name}: type not allowed. Allowed: "
                     f"{', '.join(sorted(allowed))}"
                 )
-            elif f.size > max_mb * 1024 * 1024:
-                errors.append(f'{f.name}: larger than {max_mb} MB.')
         if errors:
             raise ValidationError({'files': errors})
 

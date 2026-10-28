@@ -1,9 +1,17 @@
+from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework import generics, serializers
+from rest_framework import generics, serializers, status
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.permissions import IsSupportStaff
 from tickets.models import Ticket, TicketHistory
+
+User = get_user_model()
 
 # Ticket lifecycle: New -> In Progress -> Resolved -> Closed
 # (Resolved ticket ko wapas In Progress me la sakte hain, reopen ke liye)
@@ -20,6 +28,7 @@ class SupportTicketSerializer(serializers.ModelSerializer):
     assigned_to = serializers.CharField(
         source='assigned_to.username', read_only=True, default=None
     )
+    assigned_to_id = serializers.IntegerField(read_only=True)
     category_name = serializers.CharField(
         source='category.name', read_only=True, default=None
     )
@@ -28,13 +37,13 @@ class SupportTicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = [
             'id', 'title', 'description', 'category', 'category_name',
-            'priority', 'status', 'created_by', 'assigned_to',
+            'priority', 'status', 'created_by', 'assigned_to', 'assigned_to_id',
             'created_at', 'updated_at', 'resolved_at',
         ]
         # Support staff sirf status aur priority badal sakta hai
         read_only_fields = [
             'title', 'description', 'category', 'created_by', 'assigned_to',
-            'created_at', 'updated_at', 'resolved_at',
+            'assigned_to_id', 'created_at', 'updated_at', 'resolved_at',
         ]
 
     def validate_status(self, new_status):
@@ -89,7 +98,9 @@ class SupportTicketDetailView(generics.RetrieveUpdateAPIView):
     http_method_names = ['get', 'patch', 'head', 'options']
 
     def get_queryset(self):
-        return Ticket.objects.filter(assigned_to=self.request.user)
+        return Ticket.objects.filter(
+            assigned_to=self.request.user
+        ).select_related('category', 'created_by', 'assigned_to')
 
     def perform_update(self, serializer):
         ticket = serializer.instance
@@ -116,3 +127,84 @@ class SupportTicketDetailView(generics.RetrieveUpdateAPIView):
                 ticket=ticket, changed_by=user, field='priority',
                 old_value=old_priority, new_value=ticket.priority,
             )
+
+
+class SupportStaffSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'name']
+
+    def get_name(self, obj):
+        return obj.get_full_name() or obj.username
+
+
+class SupportStaffListView(generics.ListAPIView):
+    """
+    GET /api/support/staff/
+    Active support staff ki list (apne aap ko chhodkar), reassign dropdown ke liye.
+    """
+    serializer_class = SupportStaffSerializer
+    permission_classes = [IsSupportStaff]
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            User.objects.filter(role='support', is_active=True)
+            .exclude(pk=self.request.user.pk)
+            .order_by('username')
+        )
+
+
+class SupportTicketReassignView(APIView):
+    """
+    POST /api/support/tickets/<id>/reassign/   body: {"assigned_to": <user id>}
+    Support staff apna assigned ticket kisi dusre active support staff ko de sakta hai.
+    Sirf wahi staff reassign kar sakta hai jisko ticket abhi assigned hai.
+    Closed ticket reassign nahi hota.
+    """
+    permission_classes = [IsSupportStaff]
+
+    @transaction.atomic
+    def post(self, request, pk, *args, **kwargs):
+        ticket = get_object_or_404(
+            Ticket.objects.select_for_update(), pk=pk, assigned_to=request.user
+        )
+
+        if ticket.status == Ticket.Status.CLOSED:
+            raise ValidationError('A closed ticket cannot be reassigned.')
+
+        target_id = request.data.get('assigned_to')
+        if not str(target_id or '').isdigit():
+            raise ValidationError({'assigned_to': 'Select a support staff member.'})
+
+        if int(target_id) == request.user.pk:
+            raise ValidationError(
+                {'assigned_to': 'This ticket is already assigned to you.'}
+            )
+
+        target = User.objects.filter(
+            pk=int(target_id), role='support', is_active=True
+        ).first()
+        if target is None:
+            raise ValidationError(
+                {'assigned_to': 'Selected user is not an active support staff member.'}
+            )
+
+        old_name = request.user.username
+        ticket.assigned_to = target
+        # signals.py is flag ko dekh kar "reassigned by ..." notification bhejta hai
+        ticket._reassigned_by = request.user
+        ticket.save(update_fields=['assigned_to', 'updated_at'])
+
+        TicketHistory.objects.create(
+            ticket=ticket, changed_by=request.user, field='assigned_to',
+            old_value=old_name, new_value=target.username,
+        )
+
+        data = SupportTicketSerializer(ticket, context={'request': request}).data
+        return Response(
+            {'detail': f'Ticket reassigned to {target.username}.', 'ticket': data},
+            status=status.HTTP_200_OK,
+        )
