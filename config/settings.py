@@ -20,7 +20,7 @@ except ImportError:  # pragma: no cover
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-            
+
 if load_dotenv:
     load_dotenv(BASE_DIR / '.env')
 
@@ -62,11 +62,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',      #new restframework 
+    'rest_framework',
     'drf_spectacular',
     'rest_framework.authtoken',
-    'accounts',            #new account app 
-    'tickets',             #new ticket app
+    'accounts',
+    'tickets',
 ]
 
 REST_FRAMEWORK = {
@@ -74,7 +74,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",   # <- NAYI LINE
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 MIDDLEWARE = [
@@ -172,6 +172,15 @@ STORAGES = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = Path(os.environ.get('DJANGO_MEDIA_ROOT', BASE_DIR / 'media'))
 
+# Upload limits: NO LIMIT (sir ke kehne par)
+# - DATA_UPLOAD_MAX_MEMORY_SIZE: non-file form data ki size limit (None = no limit)
+# - DATA_UPLOAD_MAX_NUMBER_FILES: ek request me kitni files aa sakti hain (None = no limit)
+# - DATA_UPLOAD_MAX_NUMBER_FIELDS: form fields ki count limit (None = no limit)
+# Badi files Django khud temp file me store karta hai, isliye error nahi aata.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
+DATA_UPLOAD_MAX_NUMBER_FILES = None
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
+
 # Public URL of the site (used in password-reset emails)
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
@@ -180,14 +189,27 @@ AUTH_USER_MODEL = "accounts.User"
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# Credentials ab .env file se aate hain (code me kabhi password mat likho).
+# .env me ye daalo:
+#   EMAIL_HOST_USER=your@gmail.com
+#   EMAIL_HOST_PASSWORD=your-gmail-app-password
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'bhattdeep496@gmail.com'
-EMAIL_HOST_PASSWORD = 'pdtlerfkzddwqnth'
-DEFAULT_FROM_EMAIL = 'Deskly Helpdesk <bhattdeep496@gmail.com>'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    # Credentials na hon to email terminal me print hogi (crash nahi hoga)
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', True)
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_FROM_EMAIL',
+    f'Deskly Helpdesk <{EMAIL_HOST_USER or "noreply@example.com"}>',
+)
 
 ALLOW_PUBLIC_REGISTRATION = True
 
