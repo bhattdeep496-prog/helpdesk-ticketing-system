@@ -80,6 +80,14 @@ class Ticket(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name="created_tickets",
     )
+
+    class RaisedTo(models.TextChoices):
+        SUPPORT = "support", "Support"
+        ADMIN = "admin", "Admin"
+
+    raised_to_role = models.CharField(
+        max_length=20, choices=RaisedTo.choices, default=RaisedTo.SUPPORT
+    )
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="assigned_tickets",

@@ -222,6 +222,36 @@
         color: #ff8a8e;
     }
 
+    .followup-box {
+        border: 1px solid var(--border);
+        background: var(--card-2);
+        border-radius: 12px;
+        padding: .25rem 1rem 1rem;
+        margin-top: 1.1rem;
+    }
+
+    .followup-box .fu-title {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        font-weight: 700;
+        font-size: .95rem;
+        margin-top: .85rem;
+    }
+
+    .followup-box .fu-sub {
+        color: var(--muted);
+        font-size: .8rem;
+    }
+
+    .followup-box .fx {
+        background: var(--card);
+    }
+
+    .followup-box textarea.fx {
+        min-height: 80px;
+    }
+
     .msg {
         display: none;
         border-radius: 10px;
@@ -281,8 +311,37 @@
                 </div>
             </div>
 
+            <label class="lbl">Raise ticket to</label>
+            <select class="fx" id="raised_to_role">
+                <option value="support">Support team</option>
+                <option value="admin">Admin</option>
+            </select>
+
+            <label class="lbl">Send ticket to</label>
+            <select class="fx" id="raised_to">
+                <option value="support" selected>Support team</option>
+                <option value="admin">Admin</option>
+            </select>
+            <div class="muted" style="font-size:.8rem;margin-top:.35rem">Choose who should handle this ticket.</div>
+
             <label class="lbl">Tags (optional)</label>
             <div class="chips" id="tags"><span class="muted">No tags available</span></div>
+
+            {% if request.user.role == 'admin' or request.user.role == 'support' %}
+            <div class="followup-box" id="followupBox">
+                <div class="fu-title"><i class="bi bi-alarm"></i> Follow-up</div>
+                <div class="fu-sub">Only admin and support staff can see this.</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="lbl">Follow-up date</label>
+                        <input class="fx" type="date" id="followDate">
+                    </div>
+                </div>
+                <label class="lbl">Follow-up note</label>
+                <textarea class="fx" id="followNote" maxlength="500"
+                          placeholder="What needs to be checked or done on the follow-up?"></textarea>
+            </div>
+            {% endif %}
 
             <label class="lbl">Attachments (images or PDF)</label>
             <label class="upload-btn" for="files"><i class="bi bi-upload"></i> Upload files</label>
@@ -413,8 +472,16 @@
         const title = $('title').value.trim(), description = $('description').value.trim();
         if (!title || !description) { showMsg('Title and description are required.'); return; }
 
-        const body = { title, description, priority: $('priority').value, tags: Array.from(selectedTags) };
+        const body = { title, description, priority: $('priority').value, raised_to_role: $('raised_to').value, tags: Array.from(selectedTags) };
         if ($('category').value) body.category = Number($('category').value);
+        body.raised_to_role = $('raised_to_role').value;
+
+        // follow-up fields exist only for admin/support (template renders them conditionally)
+        if ($('followDate')) {
+            if ($('followDate').value) body.follow_up_date = $('followDate').value;
+            const fn = $('followNote').value.trim();
+            if (fn) body.follow_up_note = fn;
+        }
 
         $('submit').disabled = true;
         const res = await Desk.api('/my-tickets/', { method: 'POST', body });
