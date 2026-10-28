@@ -64,6 +64,10 @@ class Ticket(models.Model):
         RESOLVED = "resolved", "Resolved"
         CLOSED = "closed", "Closed"
 
+        class RaisedTo(models.TextChoices):
+            SUPPORT = "support", "Support"
+            ADMIN = "admin", "Admin"
+
     title = models.CharField(max_length=200)
     description = models.TextField()
     category = models.ForeignKey(
