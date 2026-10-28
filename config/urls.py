@@ -36,8 +36,9 @@ urlpatterns = [
 # Uploaded files (attachments): dev me hamesha, production me sirf SERVE_MEDIA=1 par.
 # (Bade production setup me S3 / nginx use karo.)
 import os
-from django.views.static import serve as _serve_media
+
 from django.urls import re_path
+from django.views.static import serve as _serve_media
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

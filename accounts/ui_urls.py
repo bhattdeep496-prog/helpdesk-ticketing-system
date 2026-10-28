@@ -1,19 +1,11 @@
 ﻿from django.urls import path
 
-from accounts.ui_views import (
-    DashboardPageView,
-    ForgotPasswordPageView,
-    LoginPageView,
-    ManageSettingsPageView,
-    ManageSetupPageView,
-    ManageUsersPageView,
-    ProfilePageView,
-    RegisterPageView,
-    ResetPasswordPageView,
-    NewTicketPageView,
-    TicketDetailPageView,
-    TicketsPageView,
-)
+from accounts.ui_views import (DashboardPageView, ForgotPasswordPageView,
+                               LoginPageView, ManageSettingsPageView,
+                               ManageSetupPageView, ManageUsersPageView,
+                               NewTicketPageView, ProfilePageView,
+                               RegisterPageView, ResetPasswordPageView,
+                               TicketDetailPageView, TicketsPageView)
 
 urlpatterns = [
     path('', LoginPageView.as_view(), name='ui-home'),

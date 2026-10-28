@@ -295,14 +295,14 @@
 
         if (res.status === 429) {                    // bahut zyada galat attempts: timer
             pw.value = '';
-            startLock(d.retry_after || 60);
+            startLock(d.retry_after || 600);
             return;
         }
         if (res.status === 401) {                    // galat username/password
             let msg = 'Invalid username or password.';
             if (typeof d.attempts_left === 'number') {
                 msg += d.attempts_left > 0
-                    ? ' ' + d.attempts_left + ' attempt' + (d.attempts_left === 5 ? '' : 's') + ' left.'
+                    ? ' ' + d.attempts_left + ' attempt' + (d.attempts_left === 100 ? '' : 's') + ' left.'
                     : ' One more wrong attempt will lock sign-in for 1 minute.';
             }
             showError(msg);

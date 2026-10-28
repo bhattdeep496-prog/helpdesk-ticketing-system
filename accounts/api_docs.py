@@ -9,12 +9,8 @@ import importlib
 import logging
 
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (
-    OpenApiParameter,
-    extend_schema,
-    extend_schema_view,
-    inline_serializer,
-)
+from drf_spectacular.utils import (OpenApiParameter, extend_schema,
+                                   extend_schema_view, inline_serializer)
 from rest_framework import serializers
 
 log = logging.getLogger(__name__)

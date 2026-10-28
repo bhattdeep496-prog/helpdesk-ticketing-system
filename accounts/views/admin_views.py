@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model, password_validation
 from rest_framework import generics, serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated
+from rest_framework.permissions import (SAFE_METHODS, BasePermission,
+                                        IsAuthenticated)
 
 from accounts.permissions import IsAdmin
 from tickets.models import Category

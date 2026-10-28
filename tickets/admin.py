@@ -1,8 +1,7 @@
 from django.contrib import admin
 
-from .models import (
-    Attachment, Category, Comment, Priority, Ticket, TicketHistory,
-)
+from .models import (Attachment, Category, Comment, Priority, Ticket,
+                     TicketHistory)
 
 
 class CommentInline(admin.TabularInline):

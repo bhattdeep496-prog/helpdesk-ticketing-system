@@ -1,57 +1,48 @@
 from django.urls import path
+from drf_spectacular.views import (SpectacularAPIView, SpectacularRedocView,
+                                   SpectacularSwaggerView)
+
+from accounts.views.admin_ticket_detail_view import AdminTicketDetailView
+from accounts.views.admin_ticket_views import (AdminAssignTicketView,
+                                               AdminAutoAssignTicketView,
+                                               AdminTicketListView)
+# pyrefly: ignore [missing-import]
+from accounts.views.admin_views import (AdminCategoryDetailView,
+                                        AdminCategoryListCreateView,
+                                        AdminUserDetailView,
+                                        AdminUserListCreateView)
+from accounts.views.attachment_views import (TicketAttachmentDeleteView,
+                                             TicketAttachmentView)
+from accounts.views.change_password_view import ChangePasswordView
+from accounts.views.comment_views import TicketCommentView
+from accounts.views.dashboard_views import (AdminDashboardView,
+                                            CustomerDashboardView,
+                                            DashboardView,
+                                            SupportDashboardView)
+from accounts.views.forgot_reset_view import (ForgotPasswordView,
+                                              ResetPasswordView)
 from accounts.views.login_view import LoginView
 from accounts.views.logout_view import LogoutView
-from accounts.views.forgot_reset_view import ForgotPasswordView, ResetPasswordView
-from accounts.views.change_password_view import ChangePasswordView
-from accounts.views.reset_password_view import PasswordResetView, PasswordResetConfirmView
-from accounts.views.my_tickets_view import MyTicketsView, MyTicketDetailView
-from accounts.views.user_profile_view import UserProfileView
+from accounts.views.my_tickets_view import MyTicketDetailView, MyTicketsView
+from accounts.views.notification_views import (NotificationListView,
+                                               NotificationReadView)
+from accounts.views.priority_views import (PriorityDetailView,
+                                           PriorityListCreateView)
 from accounts.views.register_view import RegisterView
-from accounts.views.comment_views import TicketCommentView
-from accounts.views.priority_views import PriorityListCreateView, PriorityDetailView
-from accounts.views.ticket_search_view import TicketSearchView
-from accounts.views.notification_views import NotificationListView, NotificationReadView
-from accounts.views.system_settings_view import (
-    EmailStatusView,
-    EmailTestView,
-    SystemSettingsView,
-)
-from accounts.views.tag_views import AdminTagListCreateView, AdminTagDetailView
-from accounts.views.admin_ticket_views import (
-    AdminTicketListView,
-    AdminAssignTicketView,
-    AdminAutoAssignTicketView,
-)
-from accounts.views.attachment_views import TicketAttachmentView, TicketAttachmentDeleteView
-# pyrefly: ignore [missing-import]
-from accounts.views.admin_views import (
-    AdminUserListCreateView,
-    AdminUserDetailView,
-    AdminCategoryListCreateView,
-    AdminCategoryDetailView,
-)
-from accounts.views.report_views import (
-    SummaryReportView,
-    TicketsCSVExportView,
-    TicketsPDFExportView,
-)
-from accounts.views.dashboard_views import (
-    DashboardView,
-    AdminDashboardView,
-    SupportDashboardView,
-    CustomerDashboardView,
-)
-from accounts.views.support_views import (
-    SupportTicketListView,
-    SupportTicketDetailView,
-)
+from accounts.views.report_views import (SummaryReportView,
+                                         TicketsCSVExportView,
+                                         TicketsPDFExportView)
+from accounts.views.reset_password_view import (PasswordResetConfirmView,
+                                                PasswordResetView)
+from accounts.views.support_views import (SupportTicketDetailView,
+                                          SupportTicketListView)
+from accounts.views.system_settings_view import (EmailStatusView,
+                                                 EmailTestView,
+                                                 SystemSettingsView)
+from accounts.views.tag_views import AdminTagDetailView, AdminTagListCreateView
 from accounts.views.ticket_history_view import MyTicketHistoryView
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-    SpectacularSwaggerView,
-)
-from accounts.views.admin_ticket_detail_view import AdminTicketDetailView
+from accounts.views.ticket_search_view import TicketSearchView
+from accounts.views.user_profile_view import UserProfileView
 
 try:
     import accounts.api_docs  # noqa: F401  (Swagger annotations)

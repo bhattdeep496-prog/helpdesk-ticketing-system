@@ -4,7 +4,6 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 
-
 log = logging.getLogger(__name__)
 
 

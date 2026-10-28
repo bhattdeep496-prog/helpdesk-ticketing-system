@@ -9,7 +9,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
 # ---- Brute-force protection (login lockout) ----
 # 5 galat attempts free. 6th galat attempt par lock lagta hai, aur uske baad har galat attempt par
 # lock ka time badhta hai: 1 min -> 2 min -> 5 min -> 10 min -> 15 min (15 min par ruk jata hai).

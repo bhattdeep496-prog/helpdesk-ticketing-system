@@ -4,7 +4,6 @@ from django.db import models
 from django.utils.text import slugify
 
 
-
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
@@ -175,4 +174,4 @@ class Notification(models.Model):
         return f"{self.user}: {self.message}"
 
 
-from .site_settings import SystemSettings  #noqa: F401
+from .site_settings import SystemSettings  # noqa: F401

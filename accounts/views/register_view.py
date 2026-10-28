@@ -1,10 +1,11 @@
-from tickets.site_settings import SystemSettings
 from django.contrib.auth import get_user_model, password_validation
 from rest_framework import serializers, status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from tickets.site_settings import SystemSettings
 
 User = get_user_model()
 

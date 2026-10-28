@@ -9,9 +9,8 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from .models import Ticket
-from .notifications import (
-    notify_assigned, notify_status_changed, notify_ticket_created,
-)
+from .notifications import (notify_assigned, notify_status_changed,
+                            notify_ticket_created)
 
 
 @receiver(pre_save, sender=Ticket)
