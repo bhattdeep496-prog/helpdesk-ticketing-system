@@ -225,8 +225,7 @@
         font-size: .9rem;
     }
 
-
-    /* ---- Notifications bell ---- */
+    /* Notifications bell */
     .bell-wrap {
         position: relative;
     }
@@ -479,12 +478,9 @@
         <div class="nav-group" id="staff-nav" style="display:none">
             <div class="eyebrow mb-2">Manage</div>
             <a class="nav-link-x" href="#" data-export="/api/reports/tickets/csv/" data-name="tickets.csv"><i
-                    class="bi bi-filetype-csv"></i>
-                Export CSV</a>
+                    class="bi bi-filetype-csv"></i> Export CSV</a>
             <a class="nav-link-x" href="#" data-export="/api/reports/tickets/pdf/" data-name="tickets.pdf"><i
-                    class="bi bi-filetype-pdf"></i>
-                Export PDF</a>
-            <a class="nav-link-x" href="/api/docs/" target="_blank"><i class="bi bi-braces"></i> API docs</a>
+                    class="bi bi-filetype-pdf"></i> Export PDF</a>
         </div>
 
         <div class="side-user">
@@ -633,8 +629,8 @@
             badge.style.display = unread > 0 ? 'flex' : 'none';
             badge.textContent = unread > 99 ? '99+' : unread;
             list.innerHTML = items.length ? items.map(n => `
-              <a class="bell-item ${n.is_read ? '' : 'unread'}" href="${h(n.url)}" data-id="${n.id}">
-                ${h(n.message)}<small>${ago(n.created_at)}</small></a>`).join('')
+        <a class="bell-item ${n.is_read ? '' : 'unread'}" href="${h(n.url)}" data-id="${n.id}">
+          ${h(n.message)}<small>${ago(n.created_at)}</small></a>`).join('')
                 : '<div class="bell-empty">No notifications yet.</div>';
         }
         async function load() {
