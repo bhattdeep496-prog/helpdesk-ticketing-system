@@ -43,6 +43,13 @@ from accounts.views.tag_views import AdminTagDetailView, AdminTagListCreateView
 from accounts.views.ticket_history_view import MyTicketHistoryView
 from accounts.views.ticket_search_view import TicketSearchView
 from accounts.views.user_profile_view import UserProfileView
+from accounts.views.support_views import (
+    SupportTicketListView,
+    SupportTicketDetailView,
+    SupportStaffListView,
+    SupportTicketReassignView,
+)
+from accounts.views.followup_views import TicketFollowUpView
 
 try:
     import accounts.api_docs  # noqa: F401  (Swagger annotations)
@@ -89,6 +96,11 @@ urlpatterns = [
     path("tickets/<int:pk>/attachments/", TicketAttachmentView.as_view(), name="ticket-attachments"),
     path("tickets/<int:pk>/attachments/<int:attachment_id>/", TicketAttachmentDeleteView.as_view(), name="ticket-attachment-delete"),
     
+    # Follow up & reassign
+    path("support/tickets/<int:pk>/reassign/", SupportTicketReassignView.as_view(), name="support-ticket-reassign"),
+    path("support/staff/", SupportStaffListView.as_view(), name="support-staff"),
+    path("tickets/<int:pk>/follow-up/", TicketFollowUpView.as_view(), name="ticket-follow-up"),
+
     # 3.3 Comments
     path("tickets/<int:pk>/comments/", TicketCommentView.as_view(), name="ticket-comments"),
 

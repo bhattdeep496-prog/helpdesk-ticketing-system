@@ -246,6 +246,21 @@
         cursor: not-allowed;
     }
 
+    .sec-lbl {
+        color: var(--muted);
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        font-weight: 600;
+        display: block;
+    }
+
+    .sec-div {
+        border-top: 1px solid var(--border);
+        margin-top: 1rem;
+        padding-top: 1rem;
+    }
+
     @media (max-width: 991px) {
         .layout {
             grid-template-columns: 1fr;
@@ -316,10 +331,9 @@
                 <div class="kv"><span>Created</span><b id="d-created"></b></div>
                 <div class="kv"><span>Updated</span><b id="d-updated"></b></div>
 
+                <!-- Sirf Support Staff aur Admin ko dikhta hai -->
                 <div id="staff-box" style="display:none" class="mt-3">
-                    <label class="muted"
-                        style="font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600">Update
-                        status</label>
+                    <label class="sec-lbl">Update status</label>
                     <div class="d-flex gap-2 mt-1">
                         <select class="fx" id="s-select">
                             <option value="new">New</option>
@@ -330,6 +344,24 @@
                         <button class="btn-accent" id="s-save" type="button">Save</button>
                     </div>
                     <div class="notice" id="s-msg"></div>
+
+                    <div class="sec-div" id="actions-box">
+                        <label class="sec-lbl">Reassign ticket</label>
+                        <div class="d-flex gap-2 mt-1">
+                            <select class="fx" id="r-select">
+                                <option value="">Select staff...</option>
+                            </select>
+                            <button class="btn-ghost" id="r-save" type="button">Reassign</button>
+                        </div>
+                        <div class="notice" id="r-msg"></div>
+
+                        <label class="sec-lbl mt-3">Follow-up</label>
+                        <textarea class="fx mt-1" id="fu-text" style="min-height:64px"
+                            placeholder="Optional message"></textarea>
+                        <button class="btn-ghost w-100 mt-2" id="fu-send" type="button"><i class="bi bi-bell"></i> Send
+                            follow-up</button>
+                        <div class="notice" id="fu-msg"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -353,6 +385,7 @@
     let isStaff = false;
     let fileCount = 0;
     let ticketClosed = false;
+    let staffLoaded = false;
 
     function whenMe(cb) { if (Me.role) cb(); else window.addEventListener('medata', cb, { once: true }); }
 
@@ -367,6 +400,11 @@
             : (full
                 ? 'Maximum of ' + MAX_IMAGES + ' images reached.'
                 : fileCount + ' of ' + MAX_IMAGES + ' images used. You can add one image at a time.');
+    }
+
+    // Closed ticket par reassign aur follow-up band
+    function updateActionState() {
+        $('actions-box').style.display = ticketClosed ? 'none' : 'block';
     }
 
     function render(t) {
@@ -386,8 +424,26 @@
         $('s-select').value = t.status;
         ticketClosed = t.status === 'closed';
         updateUploadState();
+        updateActionState();
         $('loading').style.display = 'none';
         $('view').style.display = 'block';
+    }
+
+    // Reassign dropdown ke liye support staff ki list
+    async function loadStaff() {
+        if (staffLoaded) return;
+        let res = await Desk.api('/support/staff/');
+        let people = listOf(res.data);
+        if (!res.ok) {   // admin ke liye fallback
+            res = await Desk.api('/admin/users/?role=support');
+            people = listOf(res.data).filter(u => u.role === 'support' && u.is_active !== false);
+        }
+        const sel = $('r-select');
+        sel.innerHTML = '<option value="">Select staff...</option>' + people.map(p => {
+            const name = p.username || p.name || ('User ' + p.id);
+            return '<option value="' + p.id + '">' + esc(name) + '</option>';
+        }).join('');
+        staffLoaded = true;
     }
 
     async function loadTicket() {
@@ -409,6 +465,7 @@
         render(res.data);
         $('staff-box').style.display = isStaff ? 'block' : 'none';
         $('int-wrap').style.display = isStaff ? 'block' : 'none';
+        if (isStaff) loadStaff();
         loadComments(); loadFiles();
     }
 
@@ -439,14 +496,14 @@
             : '<div class="muted mt-2">No files attached.</div>';
     }
 
-    $('files').addEventListener('click', async (e) => {
-        const b = e.target.closest('.rm-file');
-        if (!b) return;
-        if (!confirm('Remove this image from the ticket?')) return;
-        const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/' + b.dataset.id + '/', { method: 'DELETE' });
-        if (!res.ok) { note($('f-err'), flatten(res.data), 'err'); return; }
-        $('f-err').style.display = 'none';
-        loadFiles();
+    $('c-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = $('c-body').value.trim();
+        if (!body) { note($('c-err'), 'Please write a message first.', 'err'); return; }
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/comments/', { method: 'POST', body: { body, is_internal: isStaff && $('c-internal').checked } });
+        if (!res.ok) { note($('c-err'), flatten(res.data), 'err'); return; }
+        $('c-err').style.display = 'none'; $('c-body').value = ''; $('c-internal').checked = false;
+        loadComments();
     });
 
     $('f-upload').addEventListener('click', async () => {
@@ -461,6 +518,16 @@
         loadFiles();
     });
 
+    $('files').addEventListener('click', async (e) => {
+        const b = e.target.closest('.rm-file');
+        if (!b) return;
+        if (!confirm('Remove this image from the ticket?')) return;
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/attachments/' + b.dataset.id + '/', { method: 'DELETE' });
+        if (!res.ok) { note($('f-err'), flatten(res.data), 'err'); return; }
+        $('f-err').style.display = 'none';
+        loadFiles();
+    });
+
     $('s-save').addEventListener('click', async () => {
         const status = $('s-select').value;
         const res = await Desk.api(ticketUrl, { method: 'PATCH', body: { status } });
@@ -469,6 +536,39 @@
         $('t-status').textContent = STATUS[status]; $('t-status').className = 'pill p-' + status;
         ticketClosed = status === 'closed';
         updateUploadState();
+        updateActionState();
+    });
+
+    // Reassign: admin -> /admin/tickets/<id>/assign/, support staff -> /support/tickets/<id>/reassign/
+    $('r-save').addEventListener('click', async () => {
+        const to = Number($('r-select').value);
+        if (!to) { note($('r-msg'), 'Please select a staff member first.', 'err'); return; }
+        const url = Me.role === 'admin'
+            ? '/admin/tickets/' + TICKET_ID + '/assign/'
+            : '/support/tickets/' + TICKET_ID + '/reassign/';
+        $('r-save').disabled = true;
+        const res = await Desk.api(url, { method: 'POST', body: { assigned_to: to } });
+        $('r-save').disabled = false;
+        if (!res.ok) { note($('r-msg'), flatten(res.data), 'err'); return; }
+        const who = $('r-select').selectedOptions[0].textContent;
+        note($('r-msg'), 'Ticket reassigned to ' + who + '.', 'ok');
+        if (Me.role === 'support') {
+            // Reassign ke baad ye ticket ab is staff ka nahi raha
+            setTimeout(() => { window.location = '/tickets/'; }, 1400);
+        } else {
+            $('d-assigned').textContent = who;
+        }
+    });
+
+    // Follow-up
+    $('fu-send').addEventListener('click', async () => {
+        $('fu-send').disabled = true;
+        const res = await Desk.api('/tickets/' + TICKET_ID + '/follow-up/', { method: 'POST', body: { message: $('fu-text').value.trim() } });
+        $('fu-send').disabled = false;
+        if (!res.ok) { note($('fu-msg'), flatten(res.data), 'err'); return; }
+        note($('fu-msg'), (res.data && res.data.detail) || 'Follow-up sent.', 'ok');
+        $('fu-text').value = '';
+        loadComments();
     });
 
     whenMe(loadTicket);
