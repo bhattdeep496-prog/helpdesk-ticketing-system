@@ -411,10 +411,18 @@
     let chosenFiles = [];
 
     function showMsg(text) { $('msg').textContent = text; $('msg').style.display = 'block'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
-    function flatten(d) {
-        if (!d) return 'Something went wrong.';
-        if (typeof d === 'string') return d;
-        return Object.entries(d).map(([k, v]) => (k === 'detail' || k === 'non_field_errors' ? '' : k + ': ') + [].concat(v).join(' ')).join(' | ');
+    function flatten(d, status) {
+        if (d && typeof d === 'object') {
+            const parts = Object.entries(d).map(([k, v]) => {
+                const text = Array.isArray(v) ? v.join(' ')
+                    : (v && typeof v === 'object' ? JSON.stringify(v) : String(v));
+                return (k === 'detail' || k === 'non_field_errors') ? text : k + ': ' + text;
+            });
+            if (parts.length) return parts.join(' | ');
+        }
+        if (typeof d === 'string' && d.trim() && !d.trim().startsWith('<')) return d.trim().slice(0, 300);
+        if (status) return 'Server error (HTTP ' + status + '). Terminal me runserver ka traceback dekho.';
+        return 'Server se response nahi mila. Check karo ki server chal raha hai.';
     }
 
     async function init() {
@@ -485,14 +493,14 @@
 
         $('submit').disabled = true;
         const res = await Desk.api('/my-tickets/', { method: 'POST', body });
-        if (!res.ok) { $('submit').disabled = false; showMsg(flatten(res.data)); return; }
+        if (!res.ok) { $('submit').disabled = false; showMsg(flatten(res.data, res.status)); return; }
 
         const id = res.data.id;
         if (chosenFiles.length) {
             const fd = new FormData();
             chosenFiles.forEach(f => fd.append('files', f));
             const up = await Desk.api('/tickets/' + id + '/attachments/', { method: 'POST', body: fd });
-            if (!up.ok) { alert('Ticket created, but files were not uploaded: ' + flatten(up.data)); }
+            if (!up.ok) { alert('Ticket created, but files were not uploaded: ' + flatten(up.data, up.status)); }
         }
         window.location = '/tickets/' + id + '/';
     });
