@@ -18,41 +18,59 @@ class TicketFollowUpView(APIView):
     """
     POST /api/tickets/<id>/follow-up/    body: {"message": "optional text"}
 
-    Admin dabaye      -> ticket ke assigned support staff ko follow-up jata hai.
-    Support staff dabaye -> admins ko follow-up jata hai (sirf apne assigned ticket par).
-    Customer ko kuch nahi jata, aur customer ye kar bhi nahi sakta.
+    Customer dabaye  -> ticket ke assigned staff ko follow-up jata hai
+                        (assign na ho to admins ko). Sirf apne ticket par.
+    Admin dabaye     -> ticket ke assigned support staff ko follow-up jata hai.
+    Support staff    -> follow-up nahi kar sakta.
     """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk, *args, **kwargs):
         user = request.user
-        if not (user.is_helpdesk_admin or user.is_support_staff):
-            raise PermissionDenied('Only support staff and admins can send a follow-up.')
-
         ticket = get_object_or_404(Ticket, pk=pk)
+
+        if user.is_helpdesk_admin:
+            role = 'admin'
+        elif user.is_customer:
+            role = 'customer'
+        else:
+            raise PermissionDenied('Support staff cannot send follow-ups.')
+
         if ticket.status == Ticket.Status.CLOSED:
             raise ValidationError('A closed ticket cannot be followed up.')
 
         message = (request.data.get('message') or '').strip()[:500]
 
-        if user.is_helpdesk_admin:
+        if role == 'admin':
             if ticket.assigned_to is None:
                 raise ValidationError('This ticket is not assigned to anyone yet.')
             recipients = [ticket.assigned_to]
+            visible_to_customer = False
         else:
-            if ticket.assigned_to_id != user.id:
-                raise PermissionDenied('You can only follow up on tickets assigned to you.')
-            recipients = list(
-                User.objects.filter(is_active=True).filter(Q(role='admin') | Q(is_superuser=True))
-            )
+            if ticket.created_by_id != user.id:
+                raise PermissionDenied('You can only follow up on your own tickets.')
+            if ticket.assigned_to is not None:
+                recipients = [ticket.assigned_to]
+            else:
+                recipients = list(
+                    User.objects.filter(is_active=True).filter(Q(role='admin') | Q(is_superuser=True))
+                )
+            visible_to_customer = True
 
         names = ', '.join(r.username for r in recipients) or 'no one'
-        note = f'Follow-up requested by {user.username} for {names}.'
-        if message:
-            note += f' Message: {message}'
 
-        # Internal note: customer ko nahi dikhta, ticket ki history mein record rehta hai
-        Comment.objects.create(ticket=ticket, author=user, body=note, is_internal=True)
+        if visible_to_customer:
+            body = 'Follow-up requested: please share an update on this ticket.'
+            if message:
+                body += f' {message}'
+        else:
+            body = f'Follow-up requested by {user.username} for {names}.'
+            if message:
+                body += f' Message: {message}'
+
+        Comment.objects.create(
+            ticket=ticket, author=user, body=body, is_internal=not visible_to_customer
+        )
 
         emails = [r.email for r in recipients if r.email]
         if emails and SystemSettings.load().notifications_enabled:
