@@ -311,18 +311,11 @@
                 </div>
             </div>
 
-            <label class="lbl">Raise ticket to</label>
-            <select class="fx" id="raised_to_role">
-                <option value="support">Support team</option>
-                <option value="admin">Admin</option>
-            </select>
-
             <label class="lbl">Send ticket to</label>
-            <select class="fx" id="raised_to">
-                <option value="support" selected>Support team</option>
-                <option value="admin">Admin</option>
+            <select class="fx" id="send_to">
+                <option value="">Any available (admin decides)</option>
             </select>
-            <div class="muted" style="font-size:.8rem;margin-top:.35rem">Choose who should handle this ticket.</div>
+            <div class="muted" style="font-size:.8rem;margin-top:.35rem">Pick a person to send it straight to them, or leave it on "Any available" and an admin will assign it.</div>
 
             <label class="lbl">Tags (optional)</label>
             <div class="chips" id="tags"><span class="muted">No tags available</span></div>
@@ -385,7 +378,7 @@
                 </div>
                 <div class="step">
                     <div class="n">2</div>
-                    <div><b>Assigned to an agent</b><span>An admin sends it to the right support person.</span></div>
+                    <div><b>Assigned to an agent</b><span>The person you picked gets it right away. If you chose "Any available", an admin assigns it.</span></div>
                 </div>
                 <div class="step">
                     <div class="n">3</div>
@@ -426,11 +419,12 @@
     }
 
     async function init() {
-        const [pr, ca, tg] = await Promise.all([Desk.api('/priorities/'), Desk.api('/admin/categories/'), Desk.api('/admin/tags/')]);
+        const [pr, ca, tg, rc] = await Promise.all([Desk.api('/priorities/'), Desk.api('/admin/categories/'), Desk.api('/admin/tags/'), Desk.api('/ticket-recipients/')]);
         const prios = listOf(pr.data).filter(p => p.slug && p.is_active !== false);
         $('priority').innerHTML = prios.map(p => `<option value="${esc(p.slug)}">${esc(p.name)}</option>`).join('') || '<option value="medium">Medium</option>';
         if (prios.some(p => p.slug === 'medium')) $('priority').value = 'medium';
         listOf(ca.data).forEach(c => $('category').insertAdjacentHTML('beforeend', `<option value="${c.id}">${esc(c.name)}</option>`));
+        if (rc.ok) listOf(rc.data).forEach(r => $('send_to').insertAdjacentHTML('beforeend', `<option value="${r.id}">${esc(r.name)}</option>`));
         const tags = listOf(tg.data);
         if (tags.length) {
             $('tags').innerHTML = tags.map(t => `<button type="button" class="chipx" data-id="${t.id}">${esc(t.name)}</button>`).join('');
@@ -480,9 +474,9 @@
         const title = $('title').value.trim(), description = $('description').value.trim();
         if (!title || !description) { showMsg('Title and description are required.'); return; }
 
-        const body = { title, description, priority: $('priority').value, raised_to_role: $('raised_to').value, tags: Array.from(selectedTags) };
+        const body = { title, description, priority: $('priority').value, tags: Array.from(selectedTags) };
         if ($('category').value) body.category = Number($('category').value);
-        body.raised_to_role = $('raised_to_role').value;
+        if ($('send_to').value) body.send_to = Number($('send_to').value);   // khali = Any available
 
         // follow-up fields exist only for admin/support (template renders them conditionally)
         if ($('followDate')) {

@@ -1,0 +1,132 @@
+{% extends "ui/manage_base.html" %}
+{% block title %}Ticket recipients{% endblock %}
+{% block nav_recipients %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+    <div>
+        <h1 class="page-title">Ticket recipients</h1>
+        <p class="page-sub">People customers can pick in the "Send ticket to" dropdown. "Any available (admin decides)" is always shown too.</p>
+    </div>
+    <button class="btn-accent" id="add-btn"><i class="bi bi-plus-lg"></i> Add recipient</button>
+</div>
+
+<div class="cardx">
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead>
+                <tr><th>Shown to customers as</th><th>Account</th><th>Role</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="rows"><tr><td colspan="5" class="empty-x">Loading...</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="overlay" id="modal">
+    <div class="modal-x">
+        <h3 id="m-title">Add recipient</h3>
+        <div class="msg mt-2" id="m-msg"></div>
+        <form id="m-form" novalidate>
+            <div id="user-pick">
+                <label class="lbl" style="margin-top:.6rem">Staff member</label>
+                <select class="fx" id="m-user"></select>
+            </div>
+            <div id="user-fixed" style="display:none">
+                <label class="lbl" style="margin-top:.6rem">Account</label>
+                <div id="m-account" style="font-size:.92rem"></div>
+            </div>
+            <label class="lbl">Name shown to customers</label>
+            <input class="fx" id="m-label" maxlength="100" placeholder="Leave blank to use the account name">
+            <label class="d-flex align-items-center gap-2 mt-3" style="font-size:.9rem">
+                <input type="checkbox" id="m-active" checked> On (visible in the customer dropdown)
+            </label>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn-accent" id="m-save" type="submit">Save</button>
+                <button class="btn-ghost" type="button" id="m-cancel">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block manage_js %}
+<script>
+    const URL_ = '/admin/recipients/';
+    let items = [], editing = null;
+
+    async function load() {
+        const res = await Desk.api(URL_);
+        if (!res.ok) { $('rows').innerHTML = `<tr><td colspan="5" class="empty-x">${esc(flatten(res.data))}</td></tr>`; return; }
+        items = listOf(res.data);
+        if (!items.length) {
+            $('rows').innerHTML = '<tr><td colspan="5" class="empty-x">No recipients yet. Customers will only see "Any available (admin decides)".</td></tr>';
+            return;
+        }
+        $('rows').innerHTML = items.map(it => `<tr>
+            <td><b>${esc(it.display_name)}</b></td>
+            <td>${esc(it.username)}</td>
+            <td><span class="badge-x">${esc(it.role)}</span></td>
+            <td><span class="badge-x ${it.is_active ? 'ok' : 'off'}">${it.is_active ? 'On' : 'Off'}</span></td>
+            <td class="text-end text-nowrap">
+                <button class="btn-ghost btn-sm-x" data-toggle="${it.id}">${it.is_active ? 'Turn off' : 'Turn on'}</button>
+                <button class="btn-ghost btn-sm-x" data-edit="${it.id}">Edit</button>
+                <button class="btn-danger-x btn-sm-x" data-del="${it.id}">Delete</button>
+            </td></tr>`).join('');
+    }
+
+    async function openForm(it) {
+        editing = it; $('m-msg').style.display = 'none';
+        $('m-title').textContent = it ? 'Edit recipient' : 'Add recipient';
+        $('m-label').value = it ? it.label : '';
+        $('m-active').checked = it ? it.is_active : true;
+        $('user-pick').style.display = it ? 'none' : 'block';
+        $('user-fixed').style.display = it ? 'block' : 'none';
+        if (it) {
+            $('m-account').textContent = it.username + ' (' + it.role + ')';
+        } else {
+            const res = await Desk.api(URL_ + 'candidates/');
+            const people = res.ok ? listOf(res.data) : [];
+            if (!people.length) {
+                toast('Every active support staff member and admin is already in the list.', true);
+                return;
+            }
+            $('m-user').innerHTML = people.map(p => `<option value="${p.id}">${esc(p.name)} (${esc(p.username)}) - ${esc(p.role)}</option>`).join('');
+        }
+        openModal('modal'); $('m-label').focus();
+    }
+
+    $('add-btn').addEventListener('click', () => openForm(null));
+    $('m-cancel').addEventListener('click', () => closeModal('modal'));
+
+    $('rows').addEventListener('click', async (e) => {
+        const ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]'), tg = e.target.closest('[data-toggle]');
+        if (ed) openForm(items.find(i => i.id == ed.dataset.edit));
+        if (tg) {
+            const it = items.find(i => i.id == tg.dataset.toggle);
+            const res = await Desk.api(URL_ + it.id + '/', { method: 'PATCH', body: { is_active: !it.is_active } });
+            if (res.ok) { toast(it.is_active ? 'Turned off' : 'Turned on'); load(); } else toast(flatten(res.data), true);
+        }
+        if (dl) {
+            const it = items.find(i => i.id == dl.dataset.del);
+            if (!confirm('Remove "' + it.display_name + '" from the customer dropdown?\nExisting tickets stay as they are.')) return;
+            const res = await Desk.api(URL_ + it.id + '/', { method: 'DELETE' });
+            if (res.ok || res.status === 204) { toast('Deleted'); load(); } else toast(flatten(res.data), true);
+        }
+    });
+
+    $('m-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = { label: $('m-label').value.trim(), is_active: $('m-active').checked };
+        if (!editing) body.user = Number($('m-user').value);
+        $('m-save').disabled = true;
+        const res = editing
+            ? await Desk.api(URL_ + editing.id + '/', { method: 'PATCH', body })
+            : await Desk.api(URL_, { method: 'POST', body });
+        $('m-save').disabled = false;
+        if (res.ok) { closeModal('modal'); toast('Saved'); load(); }
+        else { $('m-msg').textContent = flatten(res.data); $('m-msg').style.display = 'block'; }
+    });
+
+    requireAdmin(load);
+</script>
+{% endblock %}
