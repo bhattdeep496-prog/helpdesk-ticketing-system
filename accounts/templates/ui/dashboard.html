@@ -395,7 +395,8 @@
             { k: 'total', label: 'Total tickets', icon: 'bi-collection', color: '#10b981', list: tickets, field: 'created_at' },
             { k: 'new', label: 'New', icon: 'bi-stars', color: '#8b5cf6', list: tickets.filter(t => t.status === 'new'), field: 'created_at' },
             { k: 'in_progress', label: 'In progress', icon: 'bi-hourglass-split', color: '#f59e0b', list: tickets.filter(t => t.status === 'in_progress'), field: 'created_at' },
-            { k: 'resolved', label: 'Resolved', icon: 'bi-check2-circle', color: '#10b981', list: tickets.filter(t => t.status === 'resolved' || t.status === 'closed'), field: 'resolved_at' },
+            // Closed card: "last 7 days" ke liye closing ki date. resolved_at na ho (seedha Closed kiya gaya) to updated_at
+            { k: 'closed', label: 'Closed', icon: 'bi-archive', color: '#64748b', list: tickets.filter(t => t.status === 'closed').map(t => ({ ...t, closed_on: t.resolved_at || t.updated_at || t.created_at })), field: 'closed_on' },
         ];
         const grid = document.getElementById('stat-grid');
         grid.innerHTML = defs.map(d => `
