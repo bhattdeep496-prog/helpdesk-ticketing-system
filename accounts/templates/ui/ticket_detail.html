@@ -359,7 +359,7 @@
 
                 <!-- Sirf Customer aur Admin: follow-up (Support Staff ko nahi dikhta) -->
                 <div id="fu-box" style="display:none" class="sec-div">
-                    <label class="sec-lbl">Follow-up</label>
+                    <label class="sec-lbl" id="fu-title">Follow-up</label>
                     <textarea class="fx mt-1" id="fu-text" style="min-height:64px"
                         placeholder="Optional message"></textarea>
                     <button class="btn-ghost w-100 mt-2" id="fu-send" type="button"><i class="bi bi-bell"></i> <span id="fu-label">Send follow-up</span></button>
@@ -429,16 +429,33 @@
                 : fileCount + ' of ' + MAX_IMAGES + ' images used. You can add one image at a time.');
     }
 
-    // Closed ticket par reassign aur follow-up band
-    function updateActionState() {
-        $('actions-box').style.display = ticketClosed ? 'none' : 'block';
-        $('fu-box').style.display = (canFollowUp && !ticketClosed) ? 'block' : 'none';
+    // Support staff ko sirf allowed status dikhte hain: New -> In progress -> Resolved -> Closed
+    // (support_views.py ke ALLOWED_TRANSITIONS jaisa). Admin ko saare options milte hain.
+    const NEXT_STATUS = { new: ['in_progress'], in_progress: ['resolved'], resolved: ['closed', 'in_progress'], closed: [] };
+    function setStatusOptions(current) {
+        const sel = $('s-select');
+        if (Me.role === 'support') {
+            const opts = [current].concat(NEXT_STATUS[current] || []);
+            sel.innerHTML = opts.map(v => '<option value="' + v + '">' + (STATUS[v] || v) + '</option>').join('');
+            $('s-save').disabled = opts.length === 1;   // closed: badalne ko kuch nahi
+        }
+        sel.value = current;
     }
 
-    // Follow-up button ka text: admin ko "Send follow-up to <staff>", customer ko "Send follow-up"
+    // Closed ticket par reassign band. Follow-up: admin ko closed ticket par bhi dikhta hai, customer ko nahi
+    function updateActionState() {
+        $('actions-box').style.display = ticketClosed ? 'none' : 'block';
+        const showFollowUp = canFollowUp && (!ticketClosed || Me.role === 'admin');
+        $('fu-box').style.display = showFollowUp ? 'block' : 'none';
+    }
+
+    // Follow-up box ka text: admin ko alag (staff ko jata hai), customer ko pehle jaisa
     function setFuLabel(assignedName) {
-        $('fu-label').textContent = (Me.role === 'admin' && assignedName)
-            ? 'Send follow-up to ' + assignedName
+        const admin = Me.role === 'admin';
+        $('fu-title').textContent = admin ? 'Follow-up to staff' : 'Follow-up';
+        $('fu-text').placeholder = admin ? 'Optional message for the staff' : 'Optional message';
+        $('fu-label').textContent = admin
+            ? (assignedName ? 'Send follow-up to ' + assignedName : 'Send follow-up to staff')
             : 'Send follow-up';
     }
 
@@ -457,7 +474,7 @@
         setFuLabel(txt(t.assigned_to));
         $('d-created').textContent = fmt(t.created_at);
         $('d-updated').textContent = fmt(t.updated_at);
-        $('s-select').value = t.status;
+        setStatusOptions(t.status);
         ticketClosed = t.status === 'closed';
         updateUploadState();
         updateActionState();
@@ -577,6 +594,7 @@
         note($('s-msg'), 'Status updated.', 'ok');
         $('t-status').textContent = STATUS[status]; $('t-status').className = 'pill p-' + status;
         ticketClosed = status === 'closed';
+        setStatusOptions(status);
         updateUploadState();
         updateActionState();
     });
