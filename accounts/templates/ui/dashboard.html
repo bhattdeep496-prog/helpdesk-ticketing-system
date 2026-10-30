@@ -219,8 +219,8 @@
     }
 
     .p-in_progress {
-        background: rgba(245, 158, 11, .16);
-        color: #f59e0b;
+        background: rgba(245, 148, 46, 0.49);
+        color: #F57C4E;
     }
 
     .p-resolved {
@@ -229,8 +229,8 @@
     }
 
     .p-closed {
-        background: rgba(100, 116, 139, .2);
-        color: #94a3b8;
+        background: rgba(87, 196, 251, 0.74);
+        color: #96b9e9;
     }
 
     .table-wrap {
@@ -253,12 +253,46 @@
         }
     }
 
-    .chips-q { display: flex; flex-wrap: wrap; gap: .45rem; }
-    .chip-q { display: inline-flex; align-items: center; gap: .45rem; background: var(--card-2); border: 1px solid var(--border); color: var(--text); border-radius: 999px; padding: .3rem .75rem; font-size: .8rem; font-weight: 600; text-decoration: none; }
-    .chip-q b { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 .45rem; font-size: .72rem; }
-    .chip-q:hover { border-color: var(--accent); color: var(--text); }
-    .chip-group { margin-bottom: 1rem; }
-    .chip-group .eyebrow { margin-bottom: .45rem; }
+    .chips-q {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .45rem;
+    }
+
+    .chip-q {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        background: var(--card-2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 999px;
+        padding: .3rem .75rem;
+        font-size: .8rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .chip-q b {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 0 .45rem;
+        font-size: .72rem;
+    }
+
+    .chip-q:hover {
+        border-color: var(--accent);
+        color: var(--text);
+    }
+
+    .chip-group {
+        margin-bottom: 1rem;
+    }
+
+    .chip-group .eyebrow {
+        margin-bottom: .45rem;
+    }
 </style>
 {% endblock %}
 
@@ -351,7 +385,14 @@
     <div class="table-wrap">
         <table class="t">
             <thead>
-                <tr><th>Staff</th><th>Assigned</th><th>Open</th><th>Resolved</th><th>Closed</th><th>Avg resolution</th></tr>
+                <tr>
+                    <th>Staff</th>
+                    <th>Assigned</th>
+                    <th>Open</th>
+                    <th>Resolved</th>
+                    <th>Closed</th>
+                    <th>Avg resolution</th>
+                </tr>
             </thead>
             <tbody id="staff-body"></tbody>
         </table>
