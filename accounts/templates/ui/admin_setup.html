@@ -4,29 +4,17 @@
 
 {% block manage_css %}
 <style>
-    .tabs-x {
-        display: flex;
-        gap: .4rem;
-        margin-bottom: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .tab-x {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--muted);
-        border-radius: 999px;
-        padding: .4rem 1rem;
-        font-weight: 600;
-        font-size: .86rem;
-        cursor: pointer;
-    }
-
-    .tab-x.on {
-        background: var(--accent-soft);
-        color: var(--accent);
-        border-color: var(--accent);
-    }
+    .tabs-x { display: flex; gap: .4rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .tab-x { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: .4rem 1rem; font-weight: 600; font-size: .86rem; cursor: pointer; }
+    .tab-x.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .sw { position: relative; display: inline-block; width: 42px; height: 24px; flex: none; }
+    .sw input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .sw span { position: absolute; inset: 0; background: var(--card-2); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; transition: .15s; }
+    .sw span::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px; background: var(--muted); border-radius: 50%; transition: .15s; }
+    .sw input:checked + span { background: var(--accent); border-color: var(--accent); }
+    .sw input:checked + span::before { transform: translateX(18px); background: #fff; }
+    .sw input:disabled + span { opacity: .5; cursor: wait; }
+    .sub-x { color: var(--muted); font-size: .78rem; }
 </style>
 {% endblock %}
 
@@ -36,8 +24,7 @@
         <h1 class="page-title">Categories, priorities, tags &amp; recipients</h1>
         <p class="page-sub" id="page-sub">These options appear when people create and filter tickets.</p>
     </div>
-    <button class="btn-accent" id="add-btn"><i class="bi bi-plus-lg"></i> <span id="add-label">Add
-            category</span></button>
+    <button class="btn-accent" id="add-btn"><i class="bi bi-plus-lg"></i> <span id="add-label">Add category</span></button>
 </div>
 
 <div class="tabs-x" id="tabs">
@@ -51,11 +38,7 @@
     <div class="tbl-wrap">
         <table class="tbl">
             <thead id="head"></thead>
-            <tbody id="rows">
-                <tr>
-                    <td class="empty-x">Loading...</td>
-                </tr>
-            </tbody>
+            <tbody id="rows"><tr><td class="empty-x">Loading...</td></tr></tbody>
         </table>
     </div>
 </div>
@@ -91,8 +74,7 @@
                 <label class="lbl">Name shown to customers</label>
                 <input class="fx" id="r-label" maxlength="100" placeholder="Leave blank to use the account name">
                 <label class="d-flex align-items-center gap-2 mt-3" style="font-size:.9rem">
-                    <input type="checkbox" id="r-active" checked> On (visible in the customer's "Send ticket to"
-                    dropdown)
+                    <input type="checkbox" id="r-active" checked> On (visible in the customer's "Send ticket to" dropdown)
                 </label>
             </div>
 
@@ -111,13 +93,12 @@
         categories: { url: '/admin/categories/', label: 'category', head: ['Name', ''], sub: 'These options appear when people create and filter tickets.' },
         priorities: { url: '/priorities/', label: 'priority', head: ['Name', 'Level', 'Status', ''], sub: 'These options appear when people create and filter tickets.' },
         tags: { url: '/admin/tags/', label: 'tag', head: ['Name', ''], sub: 'These options appear when people create and filter tickets.' },
-        recipients: {
-            url: '/admin/recipients/', label: 'recipient', head: ['Shown to customers as', 'Account', 'Role', 'Status', ''],
-            sub: 'People customers can pick in "Send ticket to". "Any available (admin decides)" is always shown too.'
-        },
+        recipients: { url: '/admin/recipients/', label: 'recipient', head: ['Person', 'Role', 'Shown to customers as', 'In customer dropdown', ''],
+            sub: 'Turn a person ON to show them in the customer\'s "Send ticket to" dropdown, OFF to remove them. "Any available (admin decides)" is always shown.' },
     };
     let tab = 'categories', items = [], editing = null;
     const nameOf = (it) => it.display_name || it.name;
+    const errText = (res) => (res.data ? flatten(res.data) : 'Server error (HTTP ' + res.status + '). Check the runserver terminal for the red error.');
 
     async function load() {
         const c = CFG[tab];
@@ -125,9 +106,13 @@
         $('head').innerHTML = '<tr>' + c.head.map(h => '<th>' + h + '</th>').join('') + '</tr>';
         $('add-label').textContent = 'Add ' + c.label;
         $('page-sub').textContent = c.sub;
-        const res = await Desk.api(c.url);
+        $('add-btn').style.display = tab === 'recipients' ? 'none' : '';
         const cols = c.head.length;
-        if (!res.ok) { $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">${esc(flatten(res.data))}</td></tr>`; return; }
+
+        if (tab === 'recipients') { await loadRecipients(cols); return; }
+
+        const res = await Desk.api(c.url);
+        if (!res.ok) { $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">${esc(errText(res))}</td></tr>`; return; }
         items = listOf(res.data);
         if (!items.length) {
             const msg = tab === 'recipients'
@@ -144,16 +129,40 @@
                 return `<tr><td><b>${esc(it.name)}</b></td><td>${it.level}</td>
                   <td><span class="badge-x ${it.is_active ? 'ok' : 'off'}">${it.is_active ? 'Active' : 'Inactive'}</span></td>${actions}</tr>`;
             }
-            if (tab === 'recipients') {
-                return `<tr><td><b>${esc(it.display_name)}</b></td><td>${esc(it.username)}</td>
-                  <td><span class="badge-x">${esc(it.role)}</span></td>
-                  <td><span class="badge-x ${it.is_active ? 'ok' : 'off'}">${it.is_active ? 'On' : 'Off'}</span></td>
-                  <td class="text-end text-nowrap">
-                    <button class="btn-ghost btn-sm-x" data-toggle="${it.id}">${it.is_active ? 'Turn off' : 'Turn on'}</button>
-                    <button class="btn-ghost btn-sm-x" data-edit="${it.id}">Edit</button>
-                    <button class="btn-danger-x btn-sm-x" data-del="${it.id}">Delete</button></td></tr>`;
-            }
             return `<tr><td><b>${esc(it.name)}</b></td>${actions}</tr>`;
+        }).join('');
+    }
+
+    // Ticket recipients: ek hi list mein sab active support staff + admin, ON/OFF switch ke saath
+    async function loadRecipients(cols) {
+        const [rl, rc] = await Promise.all([Desk.api('/admin/recipients/'), Desk.api('/admin/recipients/candidates/')]);
+        if (!rl.ok || !rc.ok) {
+            const bad = !rl.ok ? rl : rc;
+            $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">${esc(errText(bad))}</td></tr>`;
+            return;
+        }
+        items = listOf(rl.data);   // edit ke liye
+        const people = [
+            ...items.map(r => ({ kind: 'rec', id: r.id, username: r.username, name: r.display_name, role: r.role, label: r.label, on: r.is_active })),
+            ...listOf(rc.data).map(u => ({ kind: 'cand', userId: u.id, username: u.username, name: u.name, role: u.role, label: '', on: false })),
+        ].sort((x, y) => x.username.toLowerCase().localeCompare(y.username.toLowerCase()));
+
+        if (!people.length) {
+            $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">No active support staff or admin accounts yet. Create them first on the Users page.</td></tr>`;
+            return;
+        }
+        $('rows').innerHTML = people.map(p => {
+            const sw = p.kind === 'rec'
+                ? `<label class="sw"><input type="checkbox" data-sw data-rec="${p.id}" ${p.on ? 'checked' : ''}><span></span></label>`
+                : `<label class="sw"><input type="checkbox" data-sw data-user="${p.userId}"><span></span></label>`;
+            const shown = p.kind === 'rec' ? `<b>${esc(p.name)}</b>` : '<span class="sub-x">Not in the list</span>';
+            const edit = p.kind === 'rec' ? `<button class="btn-ghost btn-sm-x" data-edit="${p.id}">Edit name</button>` : '';
+            return `<tr>
+                <td><b>${esc(p.username)}</b></td>
+                <td><span class="badge-x">${esc(p.role)}</span></td>
+                <td>${shown}</td>
+                <td><div class="d-flex align-items-center gap-2">${sw}<span class="sub-x">${p.on ? 'Shown' : 'Hidden'}</span></div></td>
+                <td class="text-end text-nowrap">${edit}</td></tr>`;
         }).join('');
     }
 
@@ -167,20 +176,9 @@
         if (isRec) {
             $('r-label').value = it ? it.label : '';
             $('r-active').checked = it ? it.is_active : true;
-            $('rec-user-pick').style.display = it ? 'none' : 'block';
-            $('rec-user-fixed').style.display = it ? 'block' : 'none';
-            if (it) {
-                $('r-account').textContent = it.username + ' (' + it.role + ')';
-            } else {
-                const res = await Desk.api('/admin/recipients/candidates/');
-                if (!res.ok) { toast('Could not load the staff list (HTTP ' + res.status + ').', true); return; }
-                const people = listOf(res.data);
-                if (!people.length) {
-                    toast('Every active support staff member and admin is already in the list.', true);
-                    return;
-                }
-                $('r-user').innerHTML = people.map(p => `<option value="${p.id}">${esc(p.name)} (${esc(p.username)}) - ${esc(p.role)}</option>`).join('');
-            }
+            $('rec-user-pick').style.display = 'none';
+            $('rec-user-fixed').style.display = 'block';
+            $('r-account').textContent = it.username + ' (' + it.role + ')';
             openModal('modal'); $('r-label').focus();
             return;
         }
@@ -233,6 +231,18 @@
         }
     });
 
+    // ON/OFF switch
+    $('rows').addEventListener('change', async (e) => {
+        const sw = e.target.closest('[data-sw]'); if (!sw) return;
+        sw.disabled = true;
+        const res = sw.dataset.rec
+            ? await Desk.api('/admin/recipients/' + sw.dataset.rec + '/', { method: 'PATCH', body: { is_active: sw.checked } })
+            : await Desk.api('/admin/recipients/', { method: 'POST', body: { user: Number(sw.dataset.user), is_active: true } });
+        if (res.ok) toast(sw.checked ? 'Added to the customer dropdown' : 'Removed from the customer dropdown');
+        else toast(errText(res), true);
+        load();
+    });
+
     $('m-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const c = CFG[tab];
@@ -252,7 +262,7 @@
             : await Desk.api(c.url, { method: 'POST', body });
         $('m-save').disabled = false;
         if (res.ok) { closeModal('modal'); toast('Saved'); load(); }
-        else { $('m-msg').textContent = flatten(res.data); $('m-msg').style.display = 'block'; }
+        else { $('m-msg').textContent = errText(res); $('m-msg').style.display = 'block'; }
     });
 
     requireAdmin(load);
