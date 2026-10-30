@@ -15,9 +15,10 @@ User = get_user_model()
 
 # Ticket lifecycle: New -> In Progress -> Resolved -> Closed
 # (Resolved ticket ko wapas In Progress me la sakte hain, reopen ke liye)
+# In Progress se seedha Closed bhi ja sakta hai (e.g. duplicate / invalid ticket)
 ALLOWED_TRANSITIONS = {
     Ticket.Status.NEW: {Ticket.Status.IN_PROGRESS},
-    Ticket.Status.IN_PROGRESS: {Ticket.Status.RESOLVED},
+    Ticket.Status.IN_PROGRESS: {Ticket.Status.RESOLVED, Ticket.Status.CLOSED},
     Ticket.Status.RESOLVED: {Ticket.Status.CLOSED, Ticket.Status.IN_PROGRESS},
     Ticket.Status.CLOSED: set(),
 }
