@@ -360,7 +360,7 @@
                     </div>
                 </div>
 
-                <!-- Sirf Customer: follow-up (Admin aur Support ko nahi dikhta) -->
+                <!-- Sirf Customer aur Admin: follow-up (Support Staff ko nahi dikhta) -->
                 <div id="fu-box" style="display:none" class="sec-div">
                     <label class="sec-lbl">Follow-up</label>
                     <textarea class="fx mt-1" id="fu-text" style="min-height:64px"
@@ -390,7 +390,7 @@
 
     let ticketUrl = '/my-tickets/' + TICKET_ID + '/';
     let isStaff = false;
-    let canFollowUp = false;   // sirf customer
+    let canFollowUp = false;   // customer ya admin
     let fileCount = 0;
     let ticketClosed = false;
     let staffLoaded = false;
@@ -458,7 +458,7 @@
     async function loadTicket() {
         const role = Me.role;
         isStaff = role === 'admin' || role === 'support';
-        canFollowUp = role === 'customer';
+        canFollowUp = role === 'admin' || role === 'customer';
         if (role === 'admin') ticketUrl = '/admin/tickets/' + TICKET_ID + '/';
         else if (role === 'support') ticketUrl = '/support/tickets/' + TICKET_ID + '/';
         let res = await Desk.api(ticketUrl);
@@ -572,7 +572,7 @@
         }
     });
 
-    // Follow-up (sirf customer)
+    // Follow-up (customer aur admin)
     $('fu-send').addEventListener('click', async () => {
         $('fu-send').disabled = true;
         const res = await Desk.api('/tickets/' + TICKET_ID + '/follow-up/', { method: 'POST', body: { message: $('fu-text').value.trim() } });

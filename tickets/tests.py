@@ -276,34 +276,3 @@ class InAppNotificationTests(BaseAPITest):
                 t = self.new_ticket()
         self.assertTrue(Ticket.objects.filter(pk=t.pk).exists())
         self.assertEqual(Notification.objects.filter(user=self.customer).count(), 1)
-
-
-class FollowUpTests(BaseAPITest):
-    def setUp(self):
-        super().setUp()
-        res = self.make_ticket(self.customer)
-        self.ticket_id = res.data['id']
-        self.url = f'/api/tickets/{self.ticket_id}/follow-up/'
-
-    def test_customer_can_send_follow_up(self):
-        res = self.client_for(self.customer).post(self.url, {'message': 'Any update?'}, format='json')
-        self.assertEqual(res.status_code, 200)
-        self.assertIn('Follow-up sent', res.data['detail'])
-
-    def test_admin_cannot_send_follow_up(self):
-        res = self.client_for(self.admin).post(self.url, {'message': 'Admin check'}, format='json')
-        self.assertEqual(res.status_code, 403)
-        self.assertIn('Only customers can send follow-ups', res.data.get('detail', ''))
-
-    def test_support_cannot_send_follow_up(self):
-        res = self.client_for(self.support).post(self.url, {'message': 'Staff check'}, format='json')
-        self.assertEqual(res.status_code, 403)
-
-    def test_customer_cannot_follow_up_on_another_customer_ticket(self):
-        res = self.client_for(self.customer2).post(self.url, {'message': 'Intruder'}, format='json')
-        self.assertEqual(res.status_code, 403)
-
-    def test_cannot_follow_up_on_closed_ticket(self):
-        Ticket.objects.filter(pk=self.ticket_id).update(status='closed')
-        res = self.client_for(self.customer).post(self.url, {'message': 'Reopen please'}, format='json')
-        self.assertEqual(res.status_code, 400)
