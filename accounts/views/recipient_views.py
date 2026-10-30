@@ -1,5 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import \
+    validate_password as django_validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from rest_framework import generics, serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -75,6 +80,63 @@ class AdminRecipientDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAdminRole]
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
     queryset = TicketRecipient.objects.select_related('user')
+
+
+class NewStaffSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+    role = serializers.ChoiceField(choices=list(RECIPIENT_ROLES), default='support')
+    label = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    is_active = serializers.BooleanField(required=False, default=True)
+
+    def validate_username(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('Username is required.')
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError('This username is already taken.')
+        return value
+
+    def validate_password(self, value):
+        try:
+            django_validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value
+
+    def validate_label(self, value):
+        return value.strip()
+
+
+class AdminRecipientCreateStaffView(APIView):
+    """
+    POST /admin/recipients/new-staff/
+    Body: {"username": "MD", "password": "...", "role": "support" | "admin",
+           "email": "optional", "label": "optional", "is_active": true}
+    Naya staff account banata hai aur turant customer dropdown ki list mein jodta hai.
+    """
+    permission_classes = [IsAdminRole]
+
+    def post(self, request):
+        serializer = NewStaffSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+        try:
+            with transaction.atomic():
+                user = User(
+                    username=d['username'], email=d.get('email', ''), role=d['role'],
+                )
+                user.set_password(d['password'])
+                user.save()
+                recipient = TicketRecipient.objects.create(
+                    user=user, label=d.get('label', ''), is_active=d['is_active'],
+                )
+        except Exception as exc:   # jaise user model ki koi extra required field
+            raise ValidationError({'detail': f'Could not create the account: {exc}'})
+        return Response(
+            AdminRecipientSerializer(recipient).data, status=201,
+        )
 
 
 class AdminRecipientCandidatesView(APIView):

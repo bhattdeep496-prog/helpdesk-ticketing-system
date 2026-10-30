@@ -32,6 +32,10 @@ from accounts.views.register_view import RegisterView
 from accounts.views.report_views import (SummaryReportView,
                                          TicketsCSVExportView,
                                          TicketsPDFExportView)
+from accounts.views.reset_password_view import (PasswordResetConfirmView,
+                                                PasswordResetView)
+from accounts.views.support_views import (SupportTicketDetailView,
+                                          SupportTicketListView)
 from accounts.views.system_settings_view import (EmailStatusView,
                                                  EmailTestView,
                                                  SystemSettingsView)
@@ -47,6 +51,7 @@ from accounts.views.support_views import (
 )
 from accounts.views.followup_views import TicketFollowUpView
 from accounts.views.recipient_views import (AdminRecipientCandidatesView,
+                                            AdminRecipientCreateStaffView,
                                             AdminRecipientDetailView,
                                             AdminRecipientListCreateView,
                                             TicketRecipientChoicesView)
@@ -141,6 +146,7 @@ urlpatterns = [
 
     # Ticket recipients ("Send ticket to" dropdown)
     path('admin/recipients/', AdminRecipientListCreateView.as_view(), name='admin-recipients'),
+    path('admin/recipients/new-staff/', AdminRecipientCreateStaffView.as_view(), name='admin-recipient-new-staff'),
     path('admin/recipients/candidates/', AdminRecipientCandidatesView.as_view(), name='admin-recipient-candidates'),
     path('admin/recipients/<int:pk>/', AdminRecipientDetailView.as_view(), name='admin-recipient-detail'),
     path('ticket-recipients/', TicketRecipientChoicesView.as_view(), name='ticket-recipients'),

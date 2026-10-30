@@ -63,9 +63,19 @@
 
             <!-- Ticket recipients -->
             <div id="rec-fields" style="display:none">
-                <div id="rec-user-pick">
-                    <label class="lbl" style="margin-top:.6rem">Staff member</label>
-                    <select class="fx" id="r-user"></select>
+                <div id="rec-new">
+                    <div class="sub-x" style="margin-top:.6rem">Creates a new login and adds it to the customer dropdown. For someone who already has an account, use the switch in the list instead.</div>
+                    <label class="lbl">Username</label>
+                    <input class="fx" id="n-username" maxlength="150" autocomplete="off">
+                    <label class="lbl">Email (optional, used for email notifications)</label>
+                    <input class="fx" id="n-email" type="email" autocomplete="off">
+                    <label class="lbl">Password</label>
+                    <input class="fx" id="n-password" type="password" autocomplete="new-password">
+                    <label class="lbl">Role</label>
+                    <select class="fx" id="n-role">
+                        <option value="support">Support</option>
+                        <option value="admin">Admin</option>
+                    </select>
                 </div>
                 <div id="rec-user-fixed" style="display:none">
                     <label class="lbl" style="margin-top:.6rem">Account</label>
@@ -94,7 +104,7 @@
         priorities: { url: '/priorities/', label: 'priority', head: ['Name', 'Level', 'Status', ''], sub: 'These options appear when people create and filter tickets.' },
         tags: { url: '/admin/tags/', label: 'tag', head: ['Name', ''], sub: 'These options appear when people create and filter tickets.' },
         recipients: { url: '/admin/recipients/', label: 'recipient', head: ['Person', 'Role', 'Shown to customers as', 'In customer dropdown', ''],
-            sub: 'Turn a person ON to show them in the customer\'s "Send ticket to" dropdown, OFF to remove them.' },
+            sub: 'Turn a person ON to show them in the customer\'s "Send ticket to" dropdown, OFF to remove them. Use "Add recipient" to create someone new.' },
     };
     let tab = 'categories', items = [], editing = null;
     const nameOf = (it) => it.display_name || it.name;
@@ -106,7 +116,6 @@
         $('head').innerHTML = '<tr>' + c.head.map(h => '<th>' + h + '</th>').join('') + '</tr>';
         $('add-label').textContent = 'Add ' + c.label;
         $('page-sub').textContent = c.sub;
-        $('add-btn').style.display = tab === 'recipients' ? 'none' : '';
         const cols = c.head.length;
 
         if (tab === 'recipients') { await loadRecipients(cols); return; }
@@ -176,10 +185,15 @@
         if (isRec) {
             $('r-label').value = it ? it.label : '';
             $('r-active').checked = it ? it.is_active : true;
-            $('rec-user-pick').style.display = 'none';
-            $('rec-user-fixed').style.display = 'block';
-            $('r-account').textContent = it.username + ' (' + it.role + ')';
-            openModal('modal'); $('r-label').focus();
+            $('rec-new').style.display = it ? 'none' : 'block';
+            $('rec-user-fixed').style.display = it ? 'block' : 'none';
+            if (it) {
+                $('r-account').textContent = it.username + ' (' + it.role + ')';
+            } else {
+                ['n-username', 'n-email', 'n-password'].forEach(id => $(id).value = '');
+                $('n-role').value = 'support';
+            }
+            openModal('modal'); (it ? $('r-label') : $('n-username')).focus();
             return;
         }
 
@@ -247,9 +261,15 @@
         e.preventDefault();
         const c = CFG[tab];
         let body;
+        let url = null;
         if (tab === 'recipients') {
             body = { label: $('r-label').value.trim(), is_active: $('r-active').checked };
-            if (!editing) body.user = Number($('r-user').value);
+            if (!editing) {
+                const username = $('n-username').value.trim(), password = $('n-password').value;
+                if (!username || !password) { $('m-msg').textContent = 'Username and password are required.'; $('m-msg').style.display = 'block'; return; }
+                Object.assign(body, { username, password, email: $('n-email').value.trim(), role: $('n-role').value });
+                url = '/admin/recipients/new-staff/';
+            }
         } else {
             const name = $('m-name').value.trim();
             if (!name) { $('m-msg').textContent = 'Name is required.'; $('m-msg').style.display = 'block'; return; }
@@ -259,7 +279,7 @@
         $('m-save').disabled = true;
         const res = editing
             ? await Desk.api(c.url + editing.id + '/', { method: 'PATCH', body })
-            : await Desk.api(c.url, { method: 'POST', body });
+            : await Desk.api(url || c.url, { method: 'POST', body });
         $('m-save').disabled = false;
         if (res.ok) { closeModal('modal'); toast('Saved'); load(); }
         else { $('m-msg').textContent = errText(res); $('m-msg').style.display = 'block'; }
