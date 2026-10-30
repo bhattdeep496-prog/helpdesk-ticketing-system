@@ -552,8 +552,10 @@
         const url = Me.role === 'admin'
             ? '/admin/tickets/' + TICKET_ID + '/assign/'
             : '/support/tickets/' + TICKET_ID + '/reassign/';
+        // admin ka assign endpoint PATCH leta hai, support ka reassign POST
+        const method = Me.role === 'admin' ? 'PATCH' : 'POST';
         $('r-save').disabled = true;
-        const res = await Desk.api(url, { method: 'POST', body: { assigned_to: to } });
+        const res = await Desk.api(url, { method, body: { assigned_to: to } });
         $('r-save').disabled = false;
         if (!res.ok) { note($('r-msg'), flatten(res.data), 'err'); return; }
         const who = $('r-select').selectedOptions[0].textContent;
