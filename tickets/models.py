@@ -95,7 +95,7 @@ class Ticket(models.Model):
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, related_name="assigned_tickets",
-        limit_choices_to={"role": "support"},
+        limit_choices_to={"role__in": ["support", "admin"]},
     )
     tags = models.ManyToManyField(Tag, blank=True, related_name="tickets")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -185,5 +185,55 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.user}: {self.message}"
 
+
+class TicketRecipient(models.Model):
+    """
+    Customer ke "Send ticket to" dropdown mein dikhne wala staff member.
+    Admin isko "Ticket recipients" page se add / edit / delete karta hai.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="ticket_recipient",
+        limit_choices_to={"role__in": ["support", "admin"]},
+    )
+    label = models.CharField(
+        max_length=100, blank=True,
+        help_text="Name shown to customers. Leave blank to use the user's name.",
+    )
+    is_active = models.BooleanField(
+        default=True, help_text="Off = hidden from the customer dropdown.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    @property
+    def display_name(self):
+        return self.label or self.user.get_full_name() or self.user.username
+
+    def __str__(self):
+        return self.display_name
+
+class TicketRecipient(models.Model):
+    # pyrefly: ignore[parse-error]
+   """Customer ke "Send ticket to" dropdown mein dikhne wala staff member.""" 
+   user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="ticket_recipient",
+    )
+label = models.CharField(max_length=100, blank=True)
+is_active = models.BooleanField(default=True)
+created_at = models.DateTimeField(auto_now_add=True)
+
+class Meta:
+        ordering = ["id"]
+
+@property
+def display_name(self):
+        return self.label or self.user.get_full_name() or self.user.username
+
+def __str__(self):
+        return self.display_name
 
 from .site_settings import SystemSettings  # noqa: F401
