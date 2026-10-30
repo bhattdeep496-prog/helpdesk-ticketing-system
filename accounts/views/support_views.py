@@ -15,10 +15,9 @@ User = get_user_model()
 
 # Ticket lifecycle: New -> In Progress -> Resolved -> Closed
 # (Resolved ticket ko wapas In Progress me la sakte hain, reopen ke liye)
-# In Progress se seedha Closed bhi ja sakta hai (e.g. duplicate / invalid ticket)
 ALLOWED_TRANSITIONS = {
     Ticket.Status.NEW: {Ticket.Status.IN_PROGRESS},
-    Ticket.Status.IN_PROGRESS: {Ticket.Status.RESOLVED, Ticket.Status.CLOSED},
+    Ticket.Status.IN_PROGRESS: {Ticket.Status.RESOLVED},
     Ticket.Status.RESOLVED: {Ticket.Status.CLOSED, Ticket.Status.IN_PROGRESS},
     Ticket.Status.CLOSED: set(),
 }
@@ -110,11 +109,6 @@ class SupportTicketDetailView(generics.RetrieveUpdateAPIView):
 
         extra = {}
         if new_status == Ticket.Status.RESOLVED and old_status != Ticket.Status.RESOLVED:
-            extra['resolved_at'] = timezone.now()
-        elif new_status == Ticket.Status.CLOSED and old_status not in (
-            Ticket.Status.RESOLVED, Ticket.Status.CLOSED
-        ):
-            # Closed directly without resolving — stamp resolved_at
             extra['resolved_at'] = timezone.now()
         elif old_status == Ticket.Status.RESOLVED and new_status == Ticket.Status.IN_PROGRESS:
             extra['resolved_at'] = None

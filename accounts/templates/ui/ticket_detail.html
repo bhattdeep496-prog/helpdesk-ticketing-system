@@ -1,8 +1,6 @@
 {% extends "ui/app_base.html" %}
 {% block title %}Ticket #{{ ticket_id }}{% endblock %}
-
 {% block nav_tickets %}active{% endblock %}
-
 
 {% block page_css %}
 <style>
@@ -271,7 +269,6 @@
 </style>
 {% endblock %}
 
-
 {% block content %}
 <a class="back" href="/tickets/"><i class="bi bi-arrow-left"></i> All tickets</a>
 
@@ -362,17 +359,10 @@
 
                 <!-- Sirf Customer aur Admin: follow-up (Support Staff ko nahi dikhta) -->
                 <div id="fu-box" style="display:none" class="sec-div">
-                    <label class="sec-lbl"><i class="bi bi-bell-fill" style="color:var(--accent);margin-right:.3rem"></i>Follow-up</label>
-                    <!-- Admin-only warning when ticket is unassigned -->
-                    <div id="fu-unassigned" style="display:none" class="notice err mt-1">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        Ticket must be assigned to a staff member before sending a follow-up.
-                    </div>
+                    <label class="sec-lbl">Follow-up</label>
                     <textarea class="fx mt-1" id="fu-text" style="min-height:64px"
-                        placeholder="Optional message to the assigned staff..."></textarea>
-                    <button class="btn-accent w-100 mt-2" id="fu-send" type="button">
-                        <i class="bi bi-bell"></i> Send Follow-up
-                    </button>
+                        placeholder="Optional message"></textarea>
+                    <button class="btn-ghost w-100 mt-2" id="fu-send" type="button"><i class="bi bi-bell"></i> <span id="fu-label">Send follow-up</span></button>
                     <div class="notice" id="fu-msg"></div>
                 </div>
             </div>
@@ -380,7 +370,6 @@
     </div>
 </div>
 {% endblock %}
-
 
 {% block page_js %}
 <script>
@@ -393,16 +382,39 @@
     const fmt = (v) => v ? new Date(v).toLocaleString('en', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     const flatten = (d) => !d ? 'Something went wrong.' : (typeof d === 'string' ? d : Object.values(d).flat().join(' '));
     function note(el, text, kind) { el.textContent = text; el.className = 'notice ' + kind; el.style.display = 'block'; }
+    // Server kabhi object (jaise {name: ...}) bheje to bhi page na toote
+    const txt = (v) => (v && typeof v === 'object') ? (v.name || v.username || v.label || '') : v;
 
     let ticketUrl = '/my-tickets/' + TICKET_ID + '/';
     let isStaff = false;
     let canFollowUp = false;   // customer ya admin
-    let ticketAssigned = false; // assigned_to != null
     let fileCount = 0;
     let ticketClosed = false;
     let staffLoaded = false;
 
-    function whenMe(cb) { if (Me.role) cb(); else window.addEventListener('medata', cb, { once: true }); }
+    // "Loading ticket..." par atakne ki jagah asli error dikhao
+    function showFatal(title, detail) {
+        $('loading').style.display = 'none';
+        $('view').style.display = 'none';
+        $('error').style.display = 'block';
+        $('error').innerHTML = '<h3>' + esc(title) + '</h3><div class="muted mt-1">' + esc(detail) + '</div>';
+    }
+    const stillLoading = () => $('loading').style.display !== 'none';
+    window.addEventListener('error', (e) => {
+        if (stillLoading()) showFatal('Could not load this ticket', (e.message || 'Script error') + (e.lineno ? ' (line ' + e.lineno + ')' : ''));
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        if (stillLoading()) showFatal('Could not load this ticket', (e.reason && e.reason.message) ? e.reason.message : String(e.reason));
+    });
+
+    // Profile (Me.role) 6 second mein na aaye to bhi page atke nahi
+    function whenMe(cb) {
+        if (Me.role) { cb(); return; }
+        const timer = setTimeout(() => {
+            if (!Me.role && stillLoading()) showFatal('Could not load your profile', 'Please refresh the page or sign in again.');
+        }, 6000);
+        window.addEventListener('medata', () => { clearTimeout(timer); cb(); }, { once: true });
+    }
 
     // Upload box: ek baar mein 1 image, ticket par max 5, closed ticket par band
     function updateUploadState() {
@@ -420,28 +432,29 @@
     // Closed ticket par reassign aur follow-up band
     function updateActionState() {
         $('actions-box').style.display = ticketClosed ? 'none' : 'block';
-        const showFu = canFollowUp && !ticketClosed;
-        $('fu-box').style.display = showFu ? 'block' : 'none';
-        if (showFu) {
-            const isAdmin = (typeof Me !== 'undefined') && Me.role === 'admin';
-            const unassignedWarn = isAdmin && !ticketAssigned;
-            $('fu-unassigned').style.display = unassignedWarn ? 'block' : 'none';
-            $('fu-send').disabled = unassignedWarn;
-        }
+        $('fu-box').style.display = (canFollowUp && !ticketClosed) ? 'block' : 'none';
     }
+
+    // Follow-up button ka text: admin ko "Send follow-up to <staff>", customer ko "Send follow-up"
+    function setFuLabel(assignedName) {
+        $('fu-label').textContent = (Me.role === 'admin' && assignedName)
+            ? 'Send follow-up to ' + assignedName
+            : 'Send follow-up';
+    }
+
     function render(t) {
-        $('t-title').textContent = t.title;
-        $('t-status').textContent = STATUS[t.status] || t.status;
+        $('t-title').textContent = txt(t.title) || '';
+        $('t-status').textContent = STATUS[t.status] || t.status || '';
         $('t-status').className = 'pill p-' + t.status;
         $('t-desc').textContent = t.description || '';
-        const tags = t.tag_names || [];
-        $('t-tags').innerHTML = tags.map(n => '<span class="tag">' + esc(n) + '</span>').join('');
+        const tags = listOf(t.tag_names);
+        $('t-tags').innerHTML = tags.map(n => '<span class="tag">' + esc(txt(n)) + '</span>').join('');
         $('d-id').textContent = t.id;
-        $('d-priority').textContent = (t.priority || '—').replace('_', ' ');
-        $('d-category').textContent = t.category_name || '—';
-        $('d-by').textContent = t.created_by || '—';
-        ticketAssigned = !!t.assigned_to;
-        $('d-assigned').textContent = t.assigned_to || 'Unassigned';
+        $('d-priority').textContent = String(txt(t.priority) || '—').replace('_', ' ');
+        $('d-category').textContent = txt(t.category_name) || '—';
+        $('d-by').textContent = txt(t.created_by) || '—';
+        $('d-assigned').textContent = txt(t.assigned_to) || 'Unassigned';
+        setFuLabel(txt(t.assigned_to));
         $('d-created').textContent = fmt(t.created_at);
         $('d-updated').textContent = fmt(t.updated_at);
         $('s-select').value = t.status;
@@ -455,18 +468,20 @@
     // Reassign dropdown ke liye support staff ki list
     async function loadStaff() {
         if (staffLoaded) return;
-        let res = await Desk.api('/support/staff/');
-        let people = listOf(res.data);
-        if (!res.ok) {   // admin ke liye fallback
-            res = await Desk.api('/admin/users/?role=support');
-            people = listOf(res.data).filter(u => u.role === 'support' && u.is_active !== false);
-        }
-        const sel = $('r-select');
-        sel.innerHTML = '<option value="">Select staff...</option>' + people.map(p => {
-            const name = p.username || p.name || ('User ' + p.id);
-            return '<option value="' + p.id + '">' + esc(name) + '</option>';
-        }).join('');
-        staffLoaded = true;
+        try {
+            let res = await Desk.api('/support/staff/');
+            let people = listOf(res.data);
+            if (!res.ok) {   // admin ke liye fallback
+                res = await Desk.api('/admin/users/?role=support');
+                people = listOf(res.data).filter(u => u.role === 'support' && u.is_active !== false);
+            }
+            const sel = $('r-select');
+            sel.innerHTML = '<option value="">Select staff...</option>' + people.map(p => {
+                const name = p.username || p.name || ('User ' + p.id);
+                return '<option value="' + p.id + '">' + esc(name) + '</option>';
+            }).join('');
+            staffLoaded = true;
+        } catch (e) { /* reassign list na aaye to bhi ticket dikhna chahiye */ }
     }
 
     async function loadTicket() {
@@ -481,9 +496,12 @@
             if (alt.ok) { res = alt; ticketUrl = '/my-tickets/' + TICKET_ID + '/'; }
         }
         if (!res.ok) {
-            $('loading').style.display = 'none';
-            $('error').style.display = 'block';
-            $('error').innerHTML = '<h3>Ticket not found</h3><div class="muted mt-1">' + esc(res.status === 404 ? 'It does not exist, or you do not have access to it.' : flatten(res.data)) + '</div>';
+            showFatal(
+                'Ticket not found',
+                res.status === 404
+                    ? 'It does not exist, or you do not have access to it.'
+                    : (res.data ? flatten(res.data) : 'Server error (HTTP ' + res.status + '). Check the runserver terminal for the red error.')
+            );
             return;
         }
         render(res.data);
@@ -498,7 +516,7 @@
         const items = listOf(res.data);
         if (!res.ok) { $('comments').innerHTML = '<div class="muted mt-2">Could not load comments.</div>'; return; }
         $('comments').innerHTML = items.length ? items.map(c => {
-            const who = c.author_name || c.author || 'User';
+            const who = txt(c.author_name) || txt(c.author) || 'User';
             return `<div class="cmt"><div class="avatar">${esc(String(who).slice(0, 2).toUpperCase())}</div>
         <div class="body"><div class="who">${esc(who)}${c.is_internal ? '<span class="badge-int">Internal</span>' : ''}<span class="when">${fmt(c.created_at)}</span></div>
         <div class="txt ${c.is_internal ? 'internal' : ''}">${esc(c.body)}</div></div></div>`;
@@ -553,33 +571,23 @@
     });
 
     $('s-save').addEventListener('click', async () => {
-        const newStatus = $('s-select').value;
-        $('s-save').disabled = true;
-        const res = await Desk.api(ticketUrl, { method: 'PATCH', body: { status: newStatus } });
-        $('s-save').disabled = false;
+        const status = $('s-select').value;
+        const res = await Desk.api(ticketUrl, { method: 'PATCH', body: { status } });
         if (!res.ok) { note($('s-msg'), flatten(res.data), 'err'); return; }
         note($('s-msg'), 'Status updated.', 'ok');
-        // Re-render from server response to keep all fields in sync
-        if (res.data && res.data.status) render(res.data);
-        else {
-            // Fallback: update pill manually if server didn't return full object
-            $('t-status').textContent = STATUS[newStatus] || newStatus;
-            $('t-status').className = 'pill p-' + newStatus;
-            ticketClosed = newStatus === 'closed';
-            updateUploadState();
-            updateActionState();
-        }
-    });
+        $('t-status').textContent = STATUS[status]; $('t-status').className = 'pill p-' + status;
+        ticketClosed = status === 'closed';
+        updateUploadState();
+        updateActionState();
     });
 
-    // Reassign: admin -> /admin/tickets/<id>/assign/, support staff -> /support/tickets/<id>/reassign/
+    // Reassign: admin -> /admin/tickets/<id>/assign/ (PATCH), support staff -> /support/tickets/<id>/reassign/ (POST)
     $('r-save').addEventListener('click', async () => {
         const to = Number($('r-select').value);
         if (!to) { note($('r-msg'), 'Please select a staff member first.', 'err'); return; }
         const url = Me.role === 'admin'
             ? '/admin/tickets/' + TICKET_ID + '/assign/'
             : '/support/tickets/' + TICKET_ID + '/reassign/';
-        // admin ka assign endpoint PATCH leta hai, support ka reassign POST
         const method = Me.role === 'admin' ? 'PATCH' : 'POST';
         $('r-save').disabled = true;
         const res = await Desk.api(url, { method, body: { assigned_to: to } });
@@ -591,9 +599,8 @@
             // Reassign ke baad ye ticket ab is staff ka nahi raha
             setTimeout(() => { window.location = '/tickets/'; }, 1400);
         } else {
-            ticketAssigned = true;
             $('d-assigned').textContent = who;
-            updateActionState();
+            setFuLabel(who);
         }
     });
 
@@ -608,7 +615,10 @@
         loadComments();
     });
 
-    whenMe(loadTicket);
-    window.addEventListener('deskly:notification', () => { loadTicket(); });
+    whenMe(async () => {
+        try { await loadTicket(); }
+        catch (err) { showFatal('Could not load this ticket', err && err.message ? err.message : String(err)); }
+    });
+    window.addEventListener('deskly:notification', () => { loadTicket().catch(() => { }); });
 </script>
 {% endblock %}
