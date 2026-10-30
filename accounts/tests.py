@@ -96,8 +96,8 @@ class PriorityAPITests(APITestCase):
         self.priority, created = Priority.objects.get_or_create(
             slug='medium',
             defaults={
-               'name': 'Medium',
-               'level': 2,
+                'name': 'Medium',
+                'level': 2,
             }
         )
 
@@ -185,7 +185,7 @@ class PriorityAPITests(APITestCase):
         self.assertFalse(self.priority.is_active)
 
     def test_admin_cannot_delete_priority_used_by_ticket(self):
-        ticket = Ticket.objects.create(
+        Ticket.objects.create(
             title='Test ticket',
             description='Testing priority deletion',
             priority=self.priority.slug,

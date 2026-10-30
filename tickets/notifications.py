@@ -1,7 +1,6 @@
 """Email notifications (spec 3.9). Development me email terminal me print hota hai."""
 import logging
 
-from django.conf import settings
 from django.core.mail import send_mail
 
 log = logging.getLogger(__name__)

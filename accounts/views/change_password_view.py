@@ -49,11 +49,11 @@ class ChangePasswordView(APIView):
             )
 
         with transaction.atomic():
-         user.set_password(new_password)
-         user.save(update_fields=['password'])
+            user.set_password(new_password)
+            user.save(update_fields=['password'])
 
-         Token.objects.filter(user=user).delete()
-         new_token = Token.objects.create(user=user)
+            Token.objects.filter(user=user).delete()
+            new_token = Token.objects.create(user=user)
 
         return Response(
             {

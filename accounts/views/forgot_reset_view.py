@@ -132,8 +132,8 @@ class ResetPasswordView(APIView):
             )
 
         with transaction.atomic():
-         user.set_password(new_password)
-         user.save(update_fields=['password'])
+            user.set_password(new_password)
+            user.save(update_fields=['password'])
 
         Token.objects.filter(user=user).delete()
 

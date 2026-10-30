@@ -4,9 +4,29 @@
 
 {% block manage_css %}
 <style>
-    .tabs-x { display: flex; gap: .4rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .tab-x { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: .4rem 1rem; font-weight: 600; font-size: .86rem; cursor: pointer; }
-    .tab-x.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .tabs-x {
+        display: flex;
+        gap: .4rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .tab-x {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        border-radius: 999px;
+        padding: .4rem 1rem;
+        font-weight: 600;
+        font-size: .86rem;
+        cursor: pointer;
+    }
+
+    .tab-x.on {
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-color: var(--accent);
+    }
 </style>
 {% endblock %}
 
@@ -16,7 +36,8 @@
         <h1 class="page-title">Categories, priorities, tags &amp; recipients</h1>
         <p class="page-sub" id="page-sub">These options appear when people create and filter tickets.</p>
     </div>
-    <button class="btn-accent" id="add-btn"><i class="bi bi-plus-lg"></i> <span id="add-label">Add category</span></button>
+    <button class="btn-accent" id="add-btn"><i class="bi bi-plus-lg"></i> <span id="add-label">Add
+            category</span></button>
 </div>
 
 <div class="tabs-x" id="tabs">
@@ -30,7 +51,11 @@
     <div class="tbl-wrap">
         <table class="tbl">
             <thead id="head"></thead>
-            <tbody id="rows"><tr><td class="empty-x">Loading...</td></tr></tbody>
+            <tbody id="rows">
+                <tr>
+                    <td class="empty-x">Loading...</td>
+                </tr>
+            </tbody>
         </table>
     </div>
 </div>
@@ -66,7 +91,8 @@
                 <label class="lbl">Name shown to customers</label>
                 <input class="fx" id="r-label" maxlength="100" placeholder="Leave blank to use the account name">
                 <label class="d-flex align-items-center gap-2 mt-3" style="font-size:.9rem">
-                    <input type="checkbox" id="r-active" checked> On (visible in the customer's "Send ticket to" dropdown)
+                    <input type="checkbox" id="r-active" checked> On (visible in the customer's "Send ticket to"
+                    dropdown)
                 </label>
             </div>
 
@@ -85,8 +111,10 @@
         categories: { url: '/admin/categories/', label: 'category', head: ['Name', ''], sub: 'These options appear when people create and filter tickets.' },
         priorities: { url: '/priorities/', label: 'priority', head: ['Name', 'Level', 'Status', ''], sub: 'These options appear when people create and filter tickets.' },
         tags: { url: '/admin/tags/', label: 'tag', head: ['Name', ''], sub: 'These options appear when people create and filter tickets.' },
-        recipients: { url: '/admin/recipients/', label: 'recipient', head: ['Shown to customers as', 'Account', 'Role', 'Status', ''],
-            sub: 'People customers can pick in "Send ticket to". "Any available (admin decides)" is always shown too.' },
+        recipients: {
+            url: '/admin/recipients/', label: 'recipient', head: ['Shown to customers as', 'Account', 'Role', 'Status', ''],
+            sub: 'People customers can pick in "Send ticket to". "Any available (admin decides)" is always shown too.'
+        },
     };
     let tab = 'categories', items = [], editing = null;
     const nameOf = (it) => it.display_name || it.name;
@@ -145,7 +173,8 @@
                 $('r-account').textContent = it.username + ' (' + it.role + ')';
             } else {
                 const res = await Desk.api('/admin/recipients/candidates/');
-                const people = res.ok ? listOf(res.data) : [];
+                if (!res.ok) { toast('Could not load the staff list (HTTP ' + res.status + ').', true); return; }
+                const people = listOf(res.data);
                 if (!people.length) {
                     toast('Every active support staff member and admin is already in the list.', true);
                     return;

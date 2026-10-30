@@ -1,11 +1,14 @@
 """
 URL configuration for config project.
 """
+import os
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve as _serve_media
 
 
 def api_status(request):
@@ -35,15 +38,9 @@ urlpatterns = [
 
 # Uploaded files (attachments): dev me hamesha, production me sirf SERVE_MEDIA=1 par.
 # (Bade production setup me S3 / nginx use karo.)
-import os
-
-from django.urls import re_path
-from django.views.static import serve as _serve_media
-
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 elif os.environ.get('SERVE_MEDIA', '1').lower() in ('1', 'true', 'yes'):
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', _serve_media, {'document_root': settings.MEDIA_ROOT}),
     ]
-

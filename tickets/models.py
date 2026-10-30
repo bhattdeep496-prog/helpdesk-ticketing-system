@@ -64,10 +64,6 @@ class Ticket(models.Model):
         RESOLVED = "resolved", "Resolved"
         CLOSED = "closed", "Closed"
 
-        class RaisedTo(models.TextChoices):
-            SUPPORT = "support", "Support"
-            ADMIN = "admin", "Admin"
-
     title = models.CharField(max_length=200)
     description = models.TextField()
     category = models.ForeignKey(
@@ -216,4 +212,4 @@ class TicketRecipient(models.Model):
         return self.display_name
 
 
-from .site_settings import SystemSettings  # noqa: F401
+from .site_settings import SystemSettings  # noqa: E402, F401

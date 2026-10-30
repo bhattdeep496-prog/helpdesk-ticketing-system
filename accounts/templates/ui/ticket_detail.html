@@ -1,6 +1,8 @@
 {% extends "ui/app_base.html" %}
 {% block title %}Ticket #{{ ticket_id }}{% endblock %}
+
 {% block nav_tickets %}active{% endblock %}
+
 
 {% block page_css %}
 <style>
@@ -269,6 +271,7 @@
 </style>
 {% endblock %}
 
+
 {% block content %}
 <a class="back" href="/tickets/"><i class="bi bi-arrow-left"></i> All tickets</a>
 
@@ -371,6 +374,7 @@
     </div>
 </div>
 {% endblock %}
+
 
 {% block page_js %}
 <script>

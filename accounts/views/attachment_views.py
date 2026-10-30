@@ -77,18 +77,25 @@ class TicketAttachmentView(APIView):
         if ticket.status == Ticket.Status.CLOSED:
             raise ValidationError('Files cannot be added to a closed ticket.')
 
-        # Sirf allowed file types admin settings (database) se aate hain
+        # Limits admin settings (database) se aati hain
         cfg = SystemSettings.load()
         allowed = {
             '.' + t.strip().lower().lstrip('.')
             for t in cfg.allowed_types_list()
             if t.strip()
         }
+        max_files = cfg.max_files_per_request
+        max_mb = cfg.max_upload_size_mb
 
         files = request.FILES.getlist('files')
         if not files:
             raise ValidationError(
                 {'files': 'Please upload at least one file (field name: "files").'}
+            )
+
+        if len(files) > max_files:
+            raise ValidationError(
+                {'files': f'You can upload at most {max_files} files at a time.'}
             )
 
         # Pehle sab validate karo, phir save (ek bhi galat ho to koi save nahi)
@@ -100,6 +107,8 @@ class TicketAttachmentView(APIView):
                     f"{f.name}: type not allowed. Allowed: "
                     f"{', '.join(sorted(allowed))}"
                 )
+            elif f.size > max_mb * 1024 * 1024:
+                errors.append(f'{f.name}: larger than {max_mb} MB.')
         if errors:
             raise ValidationError({'files': errors})
 
