@@ -94,7 +94,7 @@
         priorities: { url: '/priorities/', label: 'priority', head: ['Name', 'Level', 'Status', ''], sub: 'These options appear when people create and filter tickets.' },
         tags: { url: '/admin/tags/', label: 'tag', head: ['Name', ''], sub: 'These options appear when people create and filter tickets.' },
         recipients: { url: '/admin/recipients/', label: 'recipient', head: ['Person', 'Role', 'Shown to customers as', 'In customer dropdown', ''],
-            sub: 'Turn a person ON to show them in the customer\'s "Send ticket to" dropdown, OFF to remove them. "Any available (admin decides)" is always shown.' },
+            sub: 'Turn a person ON to show them in the customer\'s "Send ticket to" dropdown, OFF to remove them.' },
     };
     let tab = 'categories', items = [], editing = null;
     const nameOf = (it) => it.display_name || it.name;
@@ -116,7 +116,7 @@
         items = listOf(res.data);
         if (!items.length) {
             const msg = tab === 'recipients'
-                ? 'No recipients yet. Customers will only see "Any available (admin decides)".'
+                ? 'No recipients yet.'
                 : `Nothing here yet. Add your first ${c.label}.`;
             $('rows').innerHTML = `<tr><td colspan="${cols}" class="empty-x">${msg}</td></tr>`;
             return;

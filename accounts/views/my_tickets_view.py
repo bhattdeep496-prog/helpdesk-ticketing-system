@@ -26,7 +26,7 @@ class MyTicketSerializer(serializers.ModelSerializer):
         source='tags', many=True, read_only=True, slug_field='name'
     )
     comments = serializers.SerializerMethodField()
-    # "Send ticket to": TicketRecipient ki id. Khali / null = "Any available (admin decides)"
+    # "Send ticket to": TicketRecipient ki id (frontend zaroori karta hai)
     send_to = serializers.PrimaryKeyRelatedField(
         queryset=TicketRecipient.objects.filter(is_active=True),
         write_only=True, required=False, allow_null=True,
@@ -65,8 +65,8 @@ class MyTicketSerializer(serializers.ModelSerializer):
                 else Ticket.RaisedTo.SUPPORT
             )
         else:
-            # "Any available (admin decides)": ticket unassigned rehti hai,
-            # signals.py raised_to_role dekhkar admins ko notification bhejta hai
+            # Safety net: koi recipient na chuna gaya (jaise list khali ho) to ticket unassigned
+            # rehti hai aur signals.py admins ko notification bhejta hai
             validated_data['raised_to_role'] = Ticket.RaisedTo.ADMIN
         return super().create(validated_data)
 
