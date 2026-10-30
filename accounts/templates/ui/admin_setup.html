@@ -93,6 +93,7 @@
 
     async function load() {
         const c = CFG[tab];
+        syncNav();
         $('head').innerHTML = '<tr>' + c.head.map(h => '<th>' + h + '</th>').join('') + '</tr>';
         $('add-label').textContent = 'Add ' + c.label;
         $('page-sub').textContent = c.sub;
@@ -161,11 +162,28 @@
         openModal('modal'); $('m-name').focus();
     }
 
+    // Sidebar ke "Ticket recipients" link (/manage/setup/#recipients) ke liye
+    function markTab() {
+        document.querySelectorAll('.tab-x').forEach(x => x.classList.toggle('on', x.dataset.tab === tab));
+    }
+    function syncNav() {
+        const s = document.getElementById('nav-setup'), r = document.getElementById('nav-recipients');
+        if (!s || !r) return;
+        s.classList.toggle('active', tab !== 'recipients');
+        r.classList.toggle('active', tab === 'recipients');
+    }
+    function selectTab(name) { tab = name; markTab(); load(); }
+
     $('tabs').addEventListener('click', (e) => {
         const b = e.target.closest('.tab-x'); if (!b) return;
-        document.querySelectorAll('.tab-x').forEach(x => x.classList.remove('on')); b.classList.add('on');
-        tab = b.dataset.tab; load();
+        history.replaceState(null, '', b.dataset.tab === 'categories' ? location.pathname : '#' + b.dataset.tab);
+        selectTab(b.dataset.tab);
     });
+    window.addEventListener('hashchange', () => {
+        const h = location.hash.slice(1);
+        if (CFG[h] && h !== tab) selectTab(h);
+    });
+    if (CFG[location.hash.slice(1)]) { tab = location.hash.slice(1); markTab(); }
     $('add-btn').addEventListener('click', () => openForm(null));
     $('m-cancel').addEventListener('click', () => closeModal('modal'));
 

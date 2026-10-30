@@ -470,8 +470,10 @@
             <div class="eyebrow mb-2">Administration</div>
             <a class="nav-link-x {% block nav_users %}{% endblock %}" href="/manage/users/"><i class="bi bi-people"></i>
                 Users</a>
-            <a class="nav-link-x {% block nav_setup %}{% endblock %}" href="/manage/setup/"><i
+            <a class="nav-link-x {% block nav_setup %}{% endblock %}" id="nav-setup" href="/manage/setup/"><i
                     class="bi bi-sliders"></i> Categories &amp; priorities</a>
+            <a class="nav-link-x" id="nav-recipients" href="/manage/setup/#recipients"><i
+                    class="bi bi-person-lines-fill"></i> Ticket recipients</a>
             <a class="nav-link-x {% block nav_settings %}{% endblock %}" href="/manage/settings/"><i
                     class="bi bi-gear"></i> System settings</a>
         </div>

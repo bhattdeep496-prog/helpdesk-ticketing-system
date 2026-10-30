@@ -215,25 +215,5 @@ class TicketRecipient(models.Model):
     def __str__(self):
         return self.display_name
 
-class TicketRecipient(models.Model):
-    # pyrefly: ignore[parse-error]
-   """Customer ke "Send ticket to" dropdown mein dikhne wala staff member.""" 
-   user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-        related_name="ticket_recipient",
-    )
-label = models.CharField(max_length=100, blank=True)
-is_active = models.BooleanField(default=True)
-created_at = models.DateTimeField(auto_now_add=True)
-
-class Meta:
-        ordering = ["id"]
-
-@property
-def display_name(self):
-        return self.label or self.user.get_full_name() or self.user.username
-
-def __str__(self):
-        return self.display_name
 
 from .site_settings import SystemSettings  # noqa: F401
