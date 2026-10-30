@@ -14,10 +14,11 @@ from tickets.models import Ticket, TicketHistory
 User = get_user_model()
 
 # Ticket lifecycle: New -> In Progress -> Resolved -> Closed
+# Closed kisi bhi open status se kiya ja sakta hai (New / In Progress / Resolved).
 # (Resolved ticket ko wapas In Progress me la sakte hain, reopen ke liye)
 ALLOWED_TRANSITIONS = {
-    Ticket.Status.NEW: {Ticket.Status.IN_PROGRESS},
-    Ticket.Status.IN_PROGRESS: {Ticket.Status.RESOLVED},
+    Ticket.Status.NEW: {Ticket.Status.IN_PROGRESS, Ticket.Status.CLOSED},
+    Ticket.Status.IN_PROGRESS: {Ticket.Status.RESOLVED, Ticket.Status.CLOSED},
     Ticket.Status.RESOLVED: {Ticket.Status.CLOSED, Ticket.Status.IN_PROGRESS},
     Ticket.Status.CLOSED: set(),
 }

@@ -429,9 +429,9 @@
                 : fileCount + ' of ' + MAX_IMAGES + ' images used. You can add one image at a time.');
     }
 
-    // Support staff ko sirf allowed status dikhte hain: New -> In progress -> Resolved -> Closed
+    // Support staff ko sirf allowed status dikhte hain (Closed kisi bhi open status se allowed)
     // (support_views.py ke ALLOWED_TRANSITIONS jaisa). Admin ko saare options milte hain.
-    const NEXT_STATUS = { new: ['in_progress'], in_progress: ['resolved'], resolved: ['closed', 'in_progress'], closed: [] };
+    const NEXT_STATUS = { new: ['in_progress', 'closed'], in_progress: ['resolved', 'closed'], resolved: ['closed', 'in_progress'], closed: [] };
     function setStatusOptions(current) {
         const sel = $('s-select');
         if (Me.role === 'support') {
