@@ -553,14 +553,23 @@
     });
 
     $('s-save').addEventListener('click', async () => {
-        const status = $('s-select').value;
-        const res = await Desk.api(ticketUrl, { method: 'PATCH', body: { status } });
+        const newStatus = $('s-select').value;
+        $('s-save').disabled = true;
+        const res = await Desk.api(ticketUrl, { method: 'PATCH', body: { status: newStatus } });
+        $('s-save').disabled = false;
         if (!res.ok) { note($('s-msg'), flatten(res.data), 'err'); return; }
         note($('s-msg'), 'Status updated.', 'ok');
-        $('t-status').textContent = STATUS[status]; $('t-status').className = 'pill p-' + status;
-        ticketClosed = status === 'closed';
-        updateUploadState();
-        updateActionState();
+        // Re-render from server response to keep all fields in sync
+        if (res.data && res.data.status) render(res.data);
+        else {
+            // Fallback: update pill manually if server didn't return full object
+            $('t-status').textContent = STATUS[newStatus] || newStatus;
+            $('t-status').className = 'pill p-' + newStatus;
+            ticketClosed = newStatus === 'closed';
+            updateUploadState();
+            updateActionState();
+        }
+    });
     });
 
     // Reassign: admin -> /admin/tickets/<id>/assign/, support staff -> /support/tickets/<id>/reassign/

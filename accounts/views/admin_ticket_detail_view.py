@@ -10,15 +10,22 @@ class AdminTicketDetailSerializer(serializers.ModelSerializer):
     assigned_to = serializers.CharField(
         source='assigned_to.username', read_only=True, default=None
     )
+    category_name = serializers.CharField(
+        source='category.name', read_only=True, default=None
+    )
+    tag_names = serializers.SlugRelatedField(
+        source='tags', many=True, read_only=True, slug_field='name'
+    )
 
     class Meta:
         model = Ticket
         fields = [
-            'id', 'title', 'description', 'category', 'priority', 'status',
+            'id', 'title', 'description', 'category', 'category_name',
+            'priority', 'status', 'tag_names',
             'created_by', 'assigned_to', 'created_at', 'updated_at', 'resolved_at',
         ]
         read_only_fields = [
-            'id', 'created_by', 'assigned_to',
+            'id', 'created_by', 'assigned_to', 'category_name', 'tag_names',
             'created_at', 'updated_at', 'resolved_at',
         ]
 
@@ -33,7 +40,9 @@ class AdminTicketDetailView(generics.RetrieveUpdateDestroyAPIView):
     Admin status ko kisi bhi value par set kar sakta hai (flow rules support staff
     ke liye hain). Status/priority badalne par history me entry banti hai.
     """
-    queryset = Ticket.objects.select_related('created_by', 'assigned_to')
+    queryset = Ticket.objects.select_related(
+        'created_by', 'assigned_to', 'category'
+    ).prefetch_related('tags')
     serializer_class = AdminTicketDetailSerializer
     permission_classes = [IsAdmin]
     http_method_names = ['get', 'patch', 'delete', 'head', 'options']
@@ -45,6 +54,11 @@ class AdminTicketDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         extra = {}
         if new_status == Ticket.Status.RESOLVED and old_status != Ticket.Status.RESOLVED:
+            extra['resolved_at'] = timezone.now()
+        elif new_status == Ticket.Status.CLOSED and old_status not in (
+            Ticket.Status.RESOLVED, Ticket.Status.CLOSED
+        ):
+            # Ticket closed without going through resolved — set resolved_at now
             extra['resolved_at'] = timezone.now()
         elif (new_status in (Ticket.Status.NEW, Ticket.Status.IN_PROGRESS)
               and old_status in (Ticket.Status.RESOLVED, Ticket.Status.CLOSED)):
