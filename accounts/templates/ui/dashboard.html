@@ -310,8 +310,8 @@
                 <div class="muted">Daily activity, last 30 days</div>
             </div>
             <div class="seg" id="seg">
-                <button class="on" data-k="opened">Opened</button>
-                <button data-k="resolved">Resolved</button>
+                <button class="on" data-k="total">Total</button>
+                <button data-k="new">New</button>
             </div>
         </div>
         <div class="chart-box"><canvas id="mainChart"></canvas></div>
@@ -412,7 +412,7 @@
     const key = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 
     let tickets = [], counts = { total: 0, new: 0, in_progress: 0, resolved: 0, closed: 0 };
-    let charts = {}, mainKind = 'opened';
+    let charts = {}, mainKind = 'total';
 
     function lastDays(n) {
         const out = [];
@@ -469,14 +469,15 @@
 
     function renderMain() {
         killChart('main');
-        const field = mainKind === 'opened' ? 'created_at' : 'resolved_at';
-        const s = series(tickets, field, 30);
+        // Total = har din bane saare tickets, New = har din bane tickets jinka status abhi "New" hai
+        const list = mainKind === 'new' ? tickets.filter(t => t.status === 'new') : tickets;
+        const s = series(list, 'created_at', 30);
         const accent = css('--accent');
         charts.main = new Chart(document.getElementById('mainChart'), {
             type: 'line',
             data: {
                 labels: s.labels, datasets: [{
-                    label: mainKind === 'opened' ? 'Opened' : 'Resolved', data: s.data, borderColor: accent, borderWidth: 2.5, tension: .4, pointRadius: 0, pointHoverRadius: 5, fill: true,
+                    label: mainKind === 'new' ? 'New' : 'Total', data: s.data, borderColor: accent, borderWidth: 2.5, tension: .4, pointRadius: 0, pointHoverRadius: 5, fill: true,
                     backgroundColor: (c) => { const g = c.chart.ctx.createLinearGradient(0, 0, 0, 290); g.addColorStop(0, accent + '55'); g.addColorStop(1, accent + '00'); return g; }
                 }]
             },
