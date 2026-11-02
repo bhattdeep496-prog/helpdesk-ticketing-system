@@ -55,6 +55,8 @@ from accounts.views.recipient_views import (AdminRecipientCandidatesView,
                                             AdminRecipientDetailView,
                                             AdminRecipientListCreateView,
                                             TicketRecipientChoicesView)
+from accounts.views.ticket_delete_view import TicketDeleteView
+from accounts.views.ticket_edit_view import TicketEditView
 
 try:
     import accounts.api_docs  # noqa: F401  (Swagger annotations)
@@ -105,6 +107,10 @@ urlpatterns = [
     path("support/tickets/<int:pk>/reassign/", SupportTicketReassignView.as_view(), name="support-ticket-reassign"),
     path("support/staff/", SupportStaffListView.as_view(), name="support-staff"),
     path("tickets/<int:pk>/follow-up/", TicketFollowUpView.as_view(), name="ticket-follow-up"),
+
+    # Delete ticket (admin: any ticket, customer: own ticket while status is New)
+    path("tickets/<int:pk>/delete/", TicketDeleteView.as_view(), name="ticket-delete"),
+    path("tickets/<int:pk>/edit/", TicketEditView.as_view(), name="ticket-edit"),
 
     # 3.3 Comments
     path("tickets/<int:pk>/comments/", TicketCommentView.as_view(), name="ticket-comments"),
